@@ -37,10 +37,6 @@ add_executable(sysprog_internal EXCLUDE_FROM_ALL ${SOURCE_FILES})
 # Create custom target for make building
 # See comment above on how to use
 add_custom_target(sysprog COMMAND make -C ${sysprog_SOURCE_DIR})
-# TODO remove additional fields (we do not need)
-        #WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-        #SOURCES ${SOURCE_FILES}
-        #CLION_EXE_DIR=${PROJECT_BINARY_DIR}/bin)
 
 
 # Print all varaibles for debugging
