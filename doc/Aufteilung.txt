@@ -1,0 +1,5 @@
+Teammitglied 1: <TODO>
+Teammitglied 2: <TODO>
+
+Für die Module der Kategorie 1 (main, clientthread und rfc ) ist Teammitglied 1 verantwortlich.
+Für die Module der Kategorie 2 (user, catalog, login und score)  ist Teammitglied 2 verantwortlich.
