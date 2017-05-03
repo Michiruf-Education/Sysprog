@@ -69,10 +69,10 @@ int main(int argc, char **argv) {
     debugPrint("    Port:\t\t%d", config.port);
 
     // TODO
-    start_loader();
-    browserCatalogs();
-    signal(SIGINT, ShutDownServer);
-    createIPCs();
+    //start_loader();
+    //browserCatalogs();
+    //signal(SIGINT, ShutDownServer);
+    //createIPCs();
 
     return 0;
 }
