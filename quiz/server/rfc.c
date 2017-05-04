@@ -45,6 +45,48 @@ static void fixRFCBody(MESSAGE *message, int direction) {
                 message->body.loginRequest.name[message->header.length - 1] = '\0';
             };
             break;
+        case TYPE_LOGIN_RESPONSE_OK:
+            break;
+        case TYPE_CATALOG_REQUEST:
+            break;
+        case TYPE_CATALOG_RESPONSE:
+            break;
+        case TYPE_CATALOG_CHANGE:
+            if(direction == DIRECTION_RECEIVE) {
+                message->body.catalogChange.fileName[message->header.length] = '\0';
+            };
+            break;
+        case TYPE_PLAYER_LIST:
+            // TODO remove: is already null terminated
+//            if(direction == DIRECTION_RECEIVE) {
+//                int playerCount = message->header.length / sizeof(PLAYER);
+//                for(int i = 0; i < playerCount; i++) {
+//                    if(message->body.playerList.players[i].name != NULL && strlen()) {
+//                        message->body.playerList.players[i].name
+//                    }
+//                }
+//            }
+            break;
+        case TYPE_START_GAME:
+            if(direction == DIRECTION_RECEIVE) {
+                message->body.startGame.catalog[message->header.length] = '\0';
+            };
+            break;
+        case TYPE_QUESTION_REQUEST:
+            break;
+        case TYPE_QUESTION:
+            break;
+        case TYPE_QUESTION_ANSWERED :
+            break;
+        case TYPE_QUESTION_RESULT :
+            break;
+        case TYPE_GAME_OVER :
+            break;
+        case TYPE_ERROR_WARNING :
+            if(direction == DIRECTION_RECEIVE) {
+                message->body.errorWarning.message[message->header.length] = '\0';
+            };
+            break;
         default:
             break;
     }
