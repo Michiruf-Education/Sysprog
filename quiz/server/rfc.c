@@ -20,24 +20,38 @@
 #include "rfc.h"
 #include "../common/util.h"
 
+#ifndef DIRECTION_RECEIVE
+#define DIRECTION_RECEIVE 1
+#endif
+#ifndef DIRECTION_SEND
+#define DIRECTION_SEND 2
+#endif
 
+static void fixRFCHeader(MESSAGE *message, int direction) {
+    message->header.length = direction == DIRECTION_RECEIVE ?
+                             ntohs(message->header.length) :
+                             htons(message->header.length);
+}
 
-/**
- * TODO comment
- * Wenn man ein Feld vom typ uint_16 benutzt, einmal die byte order per ntohs() umdrehen
- * Wenn man ein Feld vom typ uint_32+ benutzt, einmal die byte order per ntohl() umdrehen
- *
- *
- * @param socketId
- * @param message
- * @return
- */
+static void fixRFCBody(MESSAGE *message, int direction) {
+    /**
+     * TODO comment
+     * Wenn man ein Feld vom typ uint_16 benutzt, einmal die byte order per ntohs() umdrehen
+     * Wenn man ein Feld vom typ uint_32+ benutzt, einmal die byte order per ntohl() umdrehen
+     */
+    switch (message->header.type) {
+
+    }
+}
+
 ssize_t receiveMessage(int socketId, MESSAGE *message) {
     ssize_t headerSize = recv(socketId, &message->header, sizeof(message->header), MSG_WAITALL);
-    if(headerSize == sizeof(message->header)) {
-        uint16_t bodyLength = ntohs(message->header.length);
-        ssize_t bodySize = recv(socketId, &message->body, bodyLength,  MSG_WAITALL);
-        if(bodySize == bodyLength) {
+    if (headerSize == sizeof(message->header)) {
+        fixRFCHeader(message, DIRECTION_RECEIVE);
+        uint16_t bodyLength = message->header.length;
+        ssize_t bodySize = recv(socketId, &message->body, bodyLength, MSG_WAITALL);
+        if (bodySize == bodyLength) {
+            fixRFCBody(message, DIRECTION_RECEIVE);
             return headerSize + bodySize;
         }
     }
@@ -57,7 +71,7 @@ int validateMessage(MESSAGE *message) {
                 return -2;
             }
             break;
-        case TYPE_LOGIN_RESPONSE_SUCCESSFUL: // TODO validate from here on
+        case TYPE_LOGIN_RESPONSE_OK: // TODO validate from here on
             break;
         case TYPE_CATALOG_REQUEST:
             break;
@@ -89,35 +103,67 @@ int validateMessage(MESSAGE *message) {
     return 1;
 }
 
-void sendLoginResponseSuccessful(int clientSocket, LOGIN_REQUEST loginRequest, int maxPlayerCount, int clientId) {
-#pragma pack(1)
-    typedef struct send_data {
-        HEADER header;
-        uint8_t rfcVersion;
-        uint8_t maxPlayers;
-        uint8_t clientId;
-    };
-#pragma pack(0)
-    struct send_data sendData;
-    sendData.header.type = TYPE_LOGIN_RESPONSE_SUCCESSFUL;
-    sendData.header.length = sizeof(struct send_data) - sizeof(HEADER);
-    sendData.rfcVersion = (uint8_t) loginRequest.rfcVersion;
-    sendData.maxPlayers = (uint8_t) maxPlayerCount;
-    sendData.clientId = (uint8_t) clientId;
+ssize_t sendMessage(int socketId, MESSAGE *message) {
+    // Get that header length before reversing byte orders
+    uint16_t headerLength = message->header.length;
 
-    send(clientSocket, &sendData, sizeof(struct send_data), 0);
+    fixRFCHeader(message, DIRECTION_SEND);
+    fixRFCBody(message, DIRECTION_SEND);
+
+    ssize_t sendSize = send(socketId, message, headerLength, 0);
+    if (sendSize == headerLength) {
+        return sendSize;
+    }
+    return -1;
 }
 
-CATALOG_REQUEST parseCatalogRequest(uint8_t message[]);
+MESSAGE buildLoginResponseOk(uint8_t rfcVersion, uint8_t maxPlayerCount, uint8_t clientId) {
+    MESSAGE msg;
+    msg.header.type = TYPE_LOGIN_RESPONSE_OK;
+    msg.header.length = 3;
+    msg.body.loginResponseOk.rfcVersion = rfcVersion;
+    msg.body.loginResponseOk.maxPlayers = maxPlayerCount;
+    msg.body.loginResponseOk.clientId = clientId;
+    return msg;
+}
 
-void sendCatalogResponse(int clientSocket, /* nullable */ char catalogFileName[]);
+MESSAGE buildCatalogResponse(/* nullable */ char catalogFileName[]) {
+    MESSAGE msg;
+    msg.header.type = TYPE_CATALOG_RESPONSE;
+    msg.header.length = (uint16_t) strlen(catalogFileName);
+    memcpy(msg.body.catalogResponse.fileName, catalogFileName, strlen(catalogFileName));
+    return msg;
+}
 
-CATALOG_CHANGE parseCatalogChange(uint8_t message[]);
+MESSAGE buildCatalogChange(char catalogFileName[]) {
+    MESSAGE msg;
+    msg.header.type = TYPE_CATALOG_CHANGE;
+    msg.header.length = (uint16_t) strlen(catalogFileName);
+    memcpy(msg.body.catalogChange.fileName, catalogFileName, strlen(catalogFileName));
+    return msg;
+}
 
-void sendCatalogChange(int clientSocket, CATALOG_CHANGE catalogChange);
+MESSAGE buildPlayerList(PLAYER players[], int playerCount) {
+    MESSAGE msg;
+    msg.header.type = TYPE_PLAYER_LIST;
+    msg.header.length = (uint16_t) (playerCount * 37);
+    memcpy(msg.body.playerList.players, players, sizeof(players[0]) * playerCount);
+    return msg;
+}
 
-void sendPlayerList(int clientSocket, PLAYER players[]);
+MESSAGE buildStartGame(/* nullable */ char catalogFileName[]) {
+    MESSAGE msg;
+    msg.header.type = TYPE_START_GAME;
+    msg.header.length = (uint16_t) strlen(catalogFileName);
+    memcpy(msg.body.startGame.catalog, catalogFileName, strlen(catalogFileName));
+    return msg;
+}
 
-START_GAME parseStartGame(uint8_t message[]);
-
-void sendStartGame(int clientSocket, START_GAME startGame);
+MESSAGE buildErrorWarning(uint8_t subtype, char message[]) {
+    MESSAGE msg;
+    msg.header.type = TYPE_ERROR_WARNING;
+    msg.header.length = (uint16_t) (strlen(message) + 1);
+    msg.body.errorWarning.subtype = subtype;
+    memcpy(msg.body.errorWarning.message, message, strlen(message));
+    return msg;
+}
