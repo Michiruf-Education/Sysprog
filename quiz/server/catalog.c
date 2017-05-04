@@ -10,5 +10,5 @@
  * zum Auflisten der Fragekataloge und zum Laden des gewählten Fragekataloges.
  */
 
-#include "common/server_loader_protocol.h"
+#include "../common/server_loader_protocol.h"
 #include "catalog.h"

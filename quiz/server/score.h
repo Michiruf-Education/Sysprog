@@ -10,6 +10,7 @@
 #ifndef SCORE_H
 #define SCORE_H
 
-/* ... */
+int startScoreAgentThread();
+void startScoreAgent();
 
 #endif

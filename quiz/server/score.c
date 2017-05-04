@@ -16,5 +16,35 @@
 
 #include <semaphore.h>
 #include "score.h"
+#include "user.h"
+#include "../common/util.h"
+#include <pthread.h>
 
 static sem_t trigger;		// Zugriff nur über Funktionen dieses Moduls!
+pthread_t scoreThreadID = 0;
+
+//starts a ScoreAgentThread
+int startScoreAgentThread(){
+    int err;
+    err=pthread_create(&scoreThreadID,NULL,(void * ) &startScoreAgent,NULL);
+    if(err == 0){
+        infoPrint("Score agent thread created successfully");
+    }else{
+        errorPrint("Can't create Score agent thread");
+    }
+    return err;
+}
+
+void startScoreAgent(){
+    infoPrint("Starting ScoreAgent...");
+
+    while(1){
+        sem_wait(&trigger);
+
+        //updateRankingSendPlayerList();
+
+
+    }
+
+
+}
