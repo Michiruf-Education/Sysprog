@@ -43,10 +43,10 @@ enum {
 
 
 //------------------------------------------------------------------------------
-// Request types (from client)
+// Request and response types
 //------------------------------------------------------------------------------
 
-#pragma pack(push,1)
+#pragma pack(push, 1)
 typedef struct {
     char name[RFC_PLAYER_NAME_LENGTH];
     uint8_t rfcVersion;
@@ -91,7 +91,7 @@ typedef struct {
 // Message structure
 //------------------------------------------------------------------------------
 
-#pragma pack(push,1)
+#pragma pack(push, 1)
 typedef struct {
     uint8_t type;
     uint16_t length;

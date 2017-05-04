@@ -47,10 +47,14 @@ static void fixRFCBody(MESSAGE *message, int direction) {
 ssize_t receiveMessage(int socketId, MESSAGE *message) {
     ssize_t headerSize = recv(socketId, &message->header, sizeof(message->header), MSG_WAITALL);
     if (headerSize == sizeof(message->header)) {
+        debugPrint("====== GOT MESSAGE ======");
+        debugPrint("Header size: \t\t%zu", headerSize);
         fixRFCHeader(message, DIRECTION_RECEIVE);
         uint16_t bodyLength = message->header.length;
+        debugPrint("Header's body length: \t%lu", (unsigned long) bodyLength);
         ssize_t bodySize = recv(socketId, &message->body, bodyLength, MSG_WAITALL);
         if (bodySize == bodyLength) {
+            debugPrint("Read body length: \t%zu", bodySize);
             fixRFCBody(message, DIRECTION_RECEIVE);
             return headerSize + bodySize;
         }
