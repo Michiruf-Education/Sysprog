@@ -40,17 +40,73 @@ static void fixRFCBody(MESSAGE *message, int direction) {
      * Wenn man ein Feld vom typ uint_32+ benutzt, einmal die byte order per ntohl() umdrehen
      */
     switch (message->header.type) {
-
+        case TYPE_LOGIN_REQUEST:
+            if (direction == DIRECTION_RECEIVE) {
+                message->body.loginRequest.name[message->header.length - 1] = '\0';
+            };
+            break;
+        case TYPE_LOGIN_RESPONSE_OK:
+            break;
+        case TYPE_CATALOG_REQUEST:
+            break;
+        case TYPE_CATALOG_RESPONSE:
+            break;
+        case TYPE_CATALOG_CHANGE:
+            if (direction == DIRECTION_RECEIVE) {
+                message->body.catalogChange.fileName[message->header.length] = '\0';
+            };
+            break;
+        case TYPE_PLAYER_LIST:
+            if (direction == DIRECTION_RECEIVE) {
+                errorPrint("SIZE OF PLAYER: %zu (should be 37!!!!! remove other error prints too!)", sizeof(PLAYER));
+                int playerCount = message->header.length / sizeof(PLAYER);
+                for (int i = 0; i < playerCount; i++) {
+                    message->body.playerList.players[i].score = ntohl(message->body.playerList.players[i].score);
+                }
+            } else {
+                errorPrint("SIZE OF PLAYER: %zu (should be 37!!!!! remove other error prints too!)", sizeof(PLAYER));
+                int playerCount = message->header.length / sizeof(PLAYER);
+                for (int i = 0; i < playerCount; i++) {
+                    message->body.playerList.players[i].score = htonl(message->body.playerList.players[i].score);
+                }
+            }
+            break;
+        case TYPE_START_GAME:
+            if (direction == DIRECTION_RECEIVE) {
+                message->body.startGame.catalog[message->header.length] = '\0';
+            };
+            break;
+        case TYPE_QUESTION_REQUEST:
+            break;
+        case TYPE_QUESTION:
+            break;
+        case TYPE_QUESTION_ANSWERED :
+            break;
+        case TYPE_QUESTION_RESULT :
+            break;
+        case TYPE_GAME_OVER :
+            break;
+        case TYPE_ERROR_WARNING :
+            if (direction == DIRECTION_RECEIVE) {
+                message->body.errorWarning.message[message->header.length] = '\0';
+            };
+            break;
+        default:
+            break;
     }
 }
 
 ssize_t receiveMessage(int socketId, MESSAGE *message) {
     ssize_t headerSize = recv(socketId, &message->header, sizeof(message->header), MSG_WAITALL);
     if (headerSize == sizeof(message->header)) {
+        debugPrint("====== GOT MESSAGE ======");
+        debugPrint("Header size: \t\t%zu", headerSize);
         fixRFCHeader(message, DIRECTION_RECEIVE);
         uint16_t bodyLength = message->header.length;
+        debugPrint("Header's body length: \t%lu", (unsigned long) bodyLength);
         ssize_t bodySize = recv(socketId, &message->body, bodyLength, MSG_WAITALL);
         if (bodySize == bodyLength) {
+            debugPrint("Read body length: \t%zu", bodySize);
             fixRFCBody(message, DIRECTION_RECEIVE);
             return headerSize + bodySize;
         }
@@ -61,6 +117,7 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
 int validateMessage(MESSAGE *message) {
     switch (message->header.type) {
         case TYPE_LOGIN_REQUEST:
+            errorPrint("Got name:\t%s", message->body.loginRequest.name);
             if (message->body.loginRequest.rfcVersion != RFC_VERSION) {
                 errorPrint("RFC version of login request is wrong. Expected %d, got %d.", RFC_VERSION,
                            message->body.loginRequest.rfcVersion);
@@ -146,8 +203,9 @@ MESSAGE buildCatalogChange(char catalogFileName[]) {
 MESSAGE buildPlayerList(PLAYER players[], int playerCount) {
     MESSAGE msg;
     msg.header.type = TYPE_PLAYER_LIST;
-    msg.header.length = (uint16_t) (playerCount * 37);
-    memcpy(msg.body.playerList.players, players, sizeof(players[0]) * playerCount);
+    msg.header.length = (uint16_t) (playerCount * sizeof(PLAYER));
+    errorPrint("SIZE OF PLAYER: %zu (should be 37!!!!! remove other error prints too!)", sizeof(PLAYER));
+    memcpy(msg.body.playerList.players, players, sizeof(PLAYER) * playerCount);
     return msg;
 }
 
