@@ -32,7 +32,9 @@ pthread_t loginThreadID = 0;
 //starts a loginThread
 int startLoginThread(int *port) {
 
-    //TODO user-init
+    //Initialise UserData
+    initUserData();
+
     int err;
     err = pthread_create(&loginThreadID, NULL, (void *) &startLoginListener, (void *) port);
     if (err == 0) {
@@ -56,7 +58,7 @@ int startLoginListener(int *port) {
 
     infoPrint("Starting login listener...");
 
-    const size_t buf_size = MAXDATASIZE;
+    //Client Deskriptor
     int client_sock;
 
     //Socket create type AF_INET IPv4, TCP
@@ -76,7 +78,8 @@ int startLoginListener(int *port) {
     //Socket bind to local IP and port
     if (bind(listen_sock, (const struct sockaddr *) &addr, sizeof(addr)) < 0) {
         errorPrint("Could not bind socket to address");
-        return -1;
+        _exit(1);
+        //return -1;
     }
 
     //Listen to Connections, MAXCONNECTIONS 4
@@ -99,45 +102,36 @@ int startLoginListener(int *port) {
 
         if (getUserAmount() < MAXUSERS && getGameMode() < 0) {
 
-            debugPrint("here we are");
-
             MESSAGE message;
             char username[USERNAMELENGTH];
 
             if (receiveMessage(client_sock, &message) >= 0 && validateMessage(&message) >= 0) {
 
-                debugPrint("here we are 2");
-
                 if (message.header.type == TYPE_LOGIN_REQUEST) {
-                    debugPrint("here we are 3");
+
                     memcpy(username, message.body.loginRequest.name, USERNAMELENGTH);
                     if (addUser(username, client_sock) >= 0) {
                         //Message send
-                        MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,0);
-                        //TODO client-ID=FreeSlotID
-                        debugPrint("here we are 4");
+                        MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,
+                                                                   getClientIDforUser(username));
+
                         if (sendMessage(client_sock, &sendmessage) >= 0) {
-                            //TODO Client-Thread
+                            //TODO createClient-Thread
 
                         } else {
-                            errorPrint("Message send failure");
-                            //TODO sendFatalError();
+                            errorPrint("Error: Message send failure");
+                            //TODO sendFatalErrorMessage();
+
                         }
 
-                    }else{
-                        errorPrint("User could not be added to Userdata");
+                    } else {
+                        errorPrint("Error: User could not be added to Userdata");
                     }
 
                 }
             } else {
-                //geht nicht
+                errorPrint("Error: Message not received or malformed");
             }
-
-
-            //TODO daten buffer uint8 empfangen und auf LRQ-Nachricht auswerten.
-            //falls LRQ Username extrahieren ggf. nullbyte hizufugen und addUser(username, client-socketID)
-            //Client-thread erzeugen
-            //LOK-Nachricht senden
 
 
         } else {

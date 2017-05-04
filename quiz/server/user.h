@@ -19,13 +19,15 @@ typedef struct user {
     int clientSocket; //Socket-Deskriptor
 } USER;
 
-void initUserData();
+int initUserData();
 
 int addUser(char *username, int socketID);
 
 void removeUser(int socketID);
 
 int getUserAmount();
+
+__uint8_t getClientIDforUser(char *username);
 
 void clearUserData();
 

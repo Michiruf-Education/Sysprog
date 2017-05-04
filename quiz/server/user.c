@@ -48,9 +48,39 @@ void clearUserData() {
     }
 }
 
+//Fehler => 255
+__uint8_t getClientIDforUser(char *username) {
+    pthread_mutex_lock(&mutexUserData);
+
+    for (__uint8_t i = 0; i < MAXUSERS; i++) {
+        if (strcmp(userdata[i].username, username) == 0) {
+            pthread_mutex_unlock(&mutexUserData);
+            return i;
+
+        } else {
+            errorPrint("Error: No available Client ID for Username: %s", username);
+            pthread_mutex_unlock(&mutexUserData);
+            return 255;
+        }
+    }
+
+    return 255;
+}
+
+int initMutex() {
+    return pthread_mutex_init(&mutexUserData, NULL);
+}
+
 //init UserData
-void initUserData() {
-    clearUserData();
+int initUserData() {
+    if (initMutex() >= 0) {
+        clearUserData();
+        return 1;
+    } else {
+        errorPrint("Error: Mutex could not be initialized");
+        return -1;
+    }
+
 }
 
 //gibt aktuelle anzahl der angemeldeten User zurück
@@ -95,22 +125,20 @@ int addUser(char *username, int socketID) {
 
             } else {
                 pthread_mutex_unlock(&mutexUserData);
-                errorPrint("No free slot");
+                errorPrint("Error: No free slot");
                 return -1;
             }
         } else {
-            errorPrint("Error: Maximum numbers of User reached, adding Username: %s not possible!\n", username);
+            errorPrint("Error: Maximum numbers of User reached, adding Username: %s not possible!", username);
+            pthread_mutex_unlock(&mutexUserData);
             return -1;
         }
 
     } else {
-        errorPrint("Error: User with Username: %s already exist!\n", username);
+        errorPrint("Error: User with Username: %s already exist!", username);
+        pthread_mutex_unlock(&mutexUserData);
         return -1;
     }
-
-    //Mutex freigeben
-    pthread_mutex_unlock(&mutexUserData);
-    return 1;
 }
 
 //return 1 => true

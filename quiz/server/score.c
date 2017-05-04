@@ -20,31 +20,45 @@
 #include "../common/util.h"
 #include <pthread.h>
 
-static sem_t trigger;		// Zugriff nur über Funktionen dieses Moduls!
+static sem_t trigger;        // Zugriff nur über Funktionen dieses Moduls!
 pthread_t scoreThreadID = 0;
 
-//starts a ScoreAgentThread
-int startScoreAgentThread(){
-    int err;
-    err=pthread_create(&scoreThreadID,NULL,(void * ) &startScoreAgent,NULL);
-    if(err == 0){
-        infoPrint("Score agent thread created successfully");
-    }else{
-        errorPrint("Can't create Score agent thread");
-    }
-    return err;
+int initSemaphore() {
+    return sem_init(&trigger, 0, 0);
 }
 
-void startScoreAgent(){
+//starts a ScoreAgentThread
+int startScoreAgentThread() {
+
+    if (initSemaphore() >= 0) {
+        int err;
+        err = pthread_create(&scoreThreadID, NULL, (void *) &startScoreAgent, NULL);
+        if (err == 0) {
+            infoPrint("Score agent thread created successfully");
+            return 1;
+        } else {
+            errorPrint("Error: Can't create Score agent thread");
+            return err;
+        }
+
+    } else {
+        errorPrint("Error: Semaphore could not be created/initialized");
+        return -1;
+    }
+}
+
+void startScoreAgent() {
     infoPrint("Starting ScoreAgent...");
 
-    while(1){
+    while (1) {
         sem_wait(&trigger);
-
-        //updateRankingSendPlayerList();
+        updateRanking();
+        //SendPlayerListMSG
 
 
     }
 
 
 }
+
+
