@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include "../common/util.h"
 #include "vardefine.h"
+#include "score.h"
 
 //pthread_t
 pthread_mutex_t mutexUserData;
@@ -36,6 +37,7 @@ void clearUserRow(int id) {
     userdata[id].username[0] = '\0';
     userdata[id].score = 0;
     userdata[id].clientSocket = -1;
+    userAmount--;
 
     pthread_mutex_unlock(&mutexUserData);
 }
@@ -48,23 +50,23 @@ void clearUserData() {
     }
 }
 
-//Fehler => 255
-__uint8_t getClientIDforUser(char *username) {
+int getClientIDforUser(int clientSocketID) {
     pthread_mutex_lock(&mutexUserData);
 
-    for (__uint8_t i = 0; i < MAXUSERS; i++) {
-        if (strcmp(userdata[i].username, username) == 0) {
+    for (int i = 0; i < MAXUSERS; i++) {
+        if (userdata[i].clientSocket == clientSocketID) {
             pthread_mutex_unlock(&mutexUserData);
             return i;
 
         } else {
-            errorPrint("Error: No available Client ID for Username: %s", username);
+            errorPrint("Error: Client ID no available for user");
             pthread_mutex_unlock(&mutexUserData);
-            return 255;
+            return -1;
         }
     }
 
-    return 255;
+    pthread_mutex_unlock(&mutexUserData);
+    return -1;
 }
 
 int initMutex() {
@@ -80,7 +82,6 @@ int initUserData() {
         errorPrint("Error: Mutex could not be initialized");
         return -1;
     }
-
 }
 
 //gibt aktuelle anzahl der angemeldeten User zurück
@@ -121,6 +122,8 @@ int addUser(char *username, int socketID) {
                 userAmount++;
 
                 pthread_mutex_unlock(&mutexUserData);
+                incrementSemaphore(); //for ScoreAgent to be executed
+
                 return 1;
 
             } else {
@@ -141,6 +144,14 @@ int addUser(char *username, int socketID) {
     }
 }
 
+USER getUser(int id){
+    return userdata[id];
+}
+
+int getSocketID(int id){
+    return userdata[id].clientSocket;
+}
+
 //return 1 => true
 //return 0 => false
 int nameExist(char *username) {
@@ -155,15 +166,21 @@ int nameExist(char *username) {
 }
 
 //loescht ein User anhand der socketID
-void removeUser(int socketID) {
-
+void removeUserOverSocketID(int socketID) {
     for (int i = 0; i < MAXUSERS; i++) {
         if (userdata[i].clientSocket == socketID) {
             clearUserRow(i);
-            userAmount--;
+            incrementSemaphore(); //for ScoreAgent to be executed
         }
     }
 }
+
+//loescht ein User anhand des index/clientID
+void removeUserOverID(int id) {
+    clearUserRow(id);
+    incrementSemaphore(); //for ScoreAgent to be executed
+}
+
 
 //TODO updateRanking
 void updateRanking() {
@@ -183,6 +200,17 @@ void updateRankingSendPlayerList() {
 
 }
 
+//0 => ja
+//-1=> nein
+int isGameLeader(int id) {
+    if (id == 0) {
+        return 0;
+    } else {
+        return -1;
+    }
+
+}
+
 //DEBUG print UserData
 void printUSERDATA() {
     printf("\n\n");
@@ -193,3 +221,5 @@ void printUSERDATA() {
     }
     printf("\\---------------------------------------------------------------/ \n");
 }
+
+

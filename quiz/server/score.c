@@ -19,12 +19,18 @@
 #include "user.h"
 #include "../common/util.h"
 #include <pthread.h>
+#include "rfc.h"
 
 static sem_t trigger;        // Zugriff nur über Funktionen dieses Moduls!
 pthread_t scoreThreadID = 0;
 
 int initSemaphore() {
     return sem_init(&trigger, 0, 0);
+}
+
+//increments (unlocks) Semaphore
+int incrementSemaphore(){
+    return sem_post(&trigger);
 }
 
 //starts a ScoreAgentThread
@@ -51,12 +57,20 @@ void startScoreAgent() {
     infoPrint("Starting ScoreAgent...");
 
     while (1) {
+
+        //Waits until semaphor is incremented/unlocked and decrements (locks) it again
         sem_wait(&trigger);
         updateRanking();
         //SendPlayerListMSG
+        //MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,(__uint8_t) getClientIDforUser(username));
+    /*
+        MESSAGE sendmessage = buildPlayerList(, getUserAmount());
+        if (sendMessage(client_sock, &sendmessage) >= 0) {
 
+        }*/
 
     }
+
 
 
 }

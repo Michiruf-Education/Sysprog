@@ -112,16 +112,16 @@ int startLoginListener(int *port) {
                     memcpy(username, message.body.loginRequest.name, USERNAMELENGTH);
                     if (addUser(username, client_sock) >= 0) {
                         //Message send
+                        int clientID = getClientIDforUser(client_sock);
                         MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,
-                                                                   getClientIDforUser(username));
+                                                                   (__uint8_t) clientID);
 
                         if (sendMessage(client_sock, &sendmessage) >= 0) {
                             //TODO createClient-Thread
-
+                            //startClientThread(id);
                         } else {
                             errorPrint("Error: Message send failure");
                             //TODO sendFatalErrorMessage();
-
                         }
 
                     } else {
@@ -137,22 +137,5 @@ int startLoginListener(int *port) {
         } else {
             errorPrint("Error: Game running or maximum user amount reached, please try again later...");
         }
-
-        //2-Do auf RFC-Meldung LoginRequest auswerten, und User in Tabelle Speichern
-        //now receive data and send it back, until the connection closes
-        /*uint8_t bytes_read;
-        char buf[buf_size];
-        while((bytes_read = read(client_sock, buf, buf_size)) > 0){
-
-            write(STDOUT_FILENO,buf, (size_t)bytes_read);
-            write(client_sock, buf, (size_t)bytes_read);
-        }
-
-        if(bytes_read < 0){
-            perror("Error receiving data");
-            return 1;
-        }*/
     }
-
-    return 0;
 }

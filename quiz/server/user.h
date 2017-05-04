@@ -12,6 +12,8 @@
 
 #include "vardefine.h"
 
+//TODO parameter umbennen/anpassen
+
 typedef struct user {
     int index;
     char username[USERNAMELENGTH]; //sicherstellen das der Username mit \0 Terminiert wird
@@ -23,11 +25,17 @@ int initUserData();
 
 int addUser(char *username, int socketID);
 
-void removeUser(int socketID);
+void removeUserOverSocketID(int socketID);
+
+void removeUserOverID(int id);
+
+USER getUser(int id);
+
+int getSocketID(int id);
 
 int getUserAmount();
 
-__uint8_t getClientIDforUser(char *username);
+int getClientIDforUser(int clientSocket);
 
 void clearUserData();
 
@@ -35,9 +43,9 @@ int nameExist(char *username);
 
 void printUSERDATA();
 
-void updateRankingAndSendPlayerList();
-
 void updateRanking();
+
+int isGameLeader(int id);
 
 
 #endif
