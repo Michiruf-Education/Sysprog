@@ -57,15 +57,6 @@ static void fixRFCBody(MESSAGE *message, int direction) {
             };
             break;
         case TYPE_PLAYER_LIST:
-            // TODO remove: is already null terminated
-//            if(direction == DIRECTION_RECEIVE) {
-//                int playerCount = message->header.length / sizeof(PLAYER);
-//                for(int i = 0; i < playerCount; i++) {
-//                    if(message->body.playerList.players[i].name != NULL && strlen()) {
-//                        message->body.playerList.players[i].name
-//                    }
-//                }
-//            }
             break;
         case TYPE_START_GAME:
             if(direction == DIRECTION_RECEIVE) {
