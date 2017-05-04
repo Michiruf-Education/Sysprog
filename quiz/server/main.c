@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <libgen.h>
 #include "../common/util.h"
+#include "login.h"
 
 typedef struct configuration {
     char *catalog_path;
@@ -73,6 +74,14 @@ int main(int argc, char **argv) {
     //browserCatalogs();
     //signal(SIGINT, ShutDownServer);
     //createIPCs();
+
+    //Debug-Arthur
+    int port = 5556;
+    startLoginThread(&port);
+
+    while (1) {
+
+    }
 
     return 0;
 }

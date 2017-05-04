@@ -25,16 +25,19 @@
 #include "user.h"
 #include "../common/util.h"
 #include <pthread.h>
+#include "rfc.h"
 
 pthread_t loginThreadID = 0;
 
 //starts a loginThread
-int startLoginThread(int *port){
+int startLoginThread(int *port) {
+
+    //TODO user-init
     int err;
-    err=pthread_create(&loginThreadID,NULL,(void * ) &startLoginListener,(void * ) port);
-    if(err == 0){
+    err = pthread_create(&loginThreadID, NULL, (void *) &startLoginListener, (void *) port);
+    if (err == 0) {
         infoPrint("Login thread created successfully");
-    }else{
+    } else {
         errorPrint("Can't create Login thread");
     }
     return err;
@@ -44,12 +47,12 @@ int startLoginThread(int *port){
 //return -1 => VorbereitungsPhase
 //return 1 => Spiel läuft
 //wenn StartGame (STG) c=>s dann auf Spiel läuft wechseln
-int getGameMode(){
+int getGameMode() {
     return -1;
 }
 
 //Rückgabewert -1 bei Fehler
-int startLoginListener(int *port){
+int startLoginListener(int *port) {
 
     infoPrint("Starting login listener...");
 
@@ -58,7 +61,7 @@ int startLoginListener(int *port){
 
     //Socket create type AF_INET IPv4, TCP
     const int listen_sock = socket(AF_INET, SOCK_STREAM, 0);
-    if(listen_sock < 0){
+    if (listen_sock < 0) {
         errorPrint("Could not ceate socket");
         return -1;
     }
@@ -71,32 +74,65 @@ int startLoginListener(int *port){
     addr.sin_port = htons(*port);
 
     //Socket bind to local IP and port
-    if(bind(listen_sock, (const struct sockaddr *)&addr, sizeof(addr)) < 0 ){
+    if (bind(listen_sock, (const struct sockaddr *) &addr, sizeof(addr)) < 0) {
         errorPrint("Could not bind socket to address");
         return -1;
     }
 
     //Listen to Connections, MAXCONNECTIONS 4
-    if(listen(listen_sock, MAXCONNECTIONS) < 0){
+    if (listen(listen_sock, MAXCONNECTIONS) < 0) {
         errorPrint("Could not accept client connection");
         return -1;
-    }else{
-        infoPrint("Bind socket to local IP on Port: %d, and listening...",*port);
+    } else {
+        infoPrint("Bind socket to local IP on Port: %d, and listening...", *port);
     }
 
-    while(1){
+    while (1) {
         //waits for client connection
         //accept() - blockiert und wartet bis eine Verbindung vom Client aufgebaut wird
         //client_sock beinhaltet den Socket-Deskriptor des Clients
         client_sock = accept(listen_sock, NULL, NULL);
-        if(client_sock < 0){
+        if (client_sock < 0) {
             errorPrint("Could not accept client connection");
             return -1;
         }
 
-        if(getUserAmount()<MAXUSERS && getGameMode() < 0){
+        if (getUserAmount() < MAXUSERS && getGameMode() < 0) {
 
             debugPrint("here we are");
+
+            MESSAGE message;
+            char username[USERNAMELENGTH];
+
+            if (receiveMessage(client_sock, &message) >= 0 && validateMessage(&message) >= 0) {
+
+                debugPrint("here we are 2");
+
+                if (message.header.type == TYPE_LOGIN_REQUEST) {
+                    debugPrint("here we are 3");
+                    memcpy(username, message.body.loginRequest.name, USERNAMELENGTH);
+                    if (addUser(username, client_sock) >= 0) {
+                        //Message send
+                        MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,0);
+                        //TODO client-ID=FreeSlotID
+                        debugPrint("here we are 4");
+                        if (sendMessage(client_sock, &sendmessage) >= 0) {
+                            //TODO Client-Thread
+
+                        } else {
+                            errorPrint("Message send failure");
+                            //TODO sendFatalError();
+                        }
+
+                    }else{
+                        errorPrint("User could not be added to Userdata");
+                    }
+
+                }
+            } else {
+                //geht nicht
+            }
+
 
             //TODO daten buffer uint8 empfangen und auf LRQ-Nachricht auswerten.
             //falls LRQ Username extrahieren ggf. nullbyte hizufugen und addUser(username, client-socketID)
@@ -104,7 +140,7 @@ int startLoginListener(int *port){
             //LOK-Nachricht senden
 
 
-        }else{
+        } else {
             errorPrint("Error: Game running or maximum user amount reached, please try again later...");
         }
 
