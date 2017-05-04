@@ -19,32 +19,60 @@
 #include "user.h"
 #include "../common/util.h"
 #include <pthread.h>
+#include "rfc.h"
 
-static sem_t trigger;		// Zugriff nur über Funktionen dieses Moduls!
+static sem_t trigger;        // Zugriff nur über Funktionen dieses Moduls!
 pthread_t scoreThreadID = 0;
 
-//starts a ScoreAgentThread
-int startScoreAgentThread(){
-    int err;
-    err=pthread_create(&scoreThreadID,NULL,(void * ) &startScoreAgent,NULL);
-    if(err == 0){
-        infoPrint("Score agent thread created successfully");
-    }else{
-        errorPrint("Can't create Score agent thread");
-    }
-    return err;
+int initSemaphore() {
+    return sem_init(&trigger, 0, 0);
 }
 
-void startScoreAgent(){
+//increments (unlocks) Semaphore
+int incrementSemaphore(){
+    return sem_post(&trigger);
+}
+
+//starts a ScoreAgentThread
+int startScoreAgentThread() {
+
+    if (initSemaphore() >= 0) {
+        int err;
+        err = pthread_create(&scoreThreadID, NULL, (void *) &startScoreAgent, NULL);
+        if (err == 0) {
+            infoPrint("Score agent thread created successfully");
+            return 1;
+        } else {
+            errorPrint("Error: Can't create Score agent thread");
+            return err;
+        }
+
+    } else {
+        errorPrint("Error: Semaphore could not be created/initialized");
+        return -1;
+    }
+}
+
+void startScoreAgent() {
     infoPrint("Starting ScoreAgent...");
 
-    while(1){
+    while (1) {
+
+        //Waits until semaphor is incremented/unlocked and decrements (locks) it again
         sem_wait(&trigger);
+        updateRanking();
+        //SendPlayerListMSG
+        //MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,(__uint8_t) getClientIDforUser(username));
+    /*
+        MESSAGE sendmessage = buildPlayerList(, getUserAmount());
+        if (sendMessage(client_sock, &sendmessage) >= 0) {
 
-        //updateRankingSendPlayerList();
-
+        }*/
 
     }
 
 
+
 }
+
+

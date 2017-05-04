@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include "../common/util.h"
 #include "vardefine.h"
+#include "score.h"
 
 //pthread_t
 pthread_mutex_t mutexUserData;
@@ -36,6 +37,7 @@ void clearUserRow(int id) {
     userdata[id].username[0] = '\0';
     userdata[id].score = 0;
     userdata[id].clientSocket = -1;
+    userAmount--;
 
     pthread_mutex_unlock(&mutexUserData);
 }
@@ -48,9 +50,38 @@ void clearUserData() {
     }
 }
 
+int getClientIDforUser(int clientSocketID) {
+    pthread_mutex_lock(&mutexUserData);
+
+    for (int i = 0; i < MAXUSERS; i++) {
+        if (userdata[i].clientSocket == clientSocketID) {
+            pthread_mutex_unlock(&mutexUserData);
+            return i;
+
+        } else {
+            errorPrint("Error: Client ID no available for user");
+            pthread_mutex_unlock(&mutexUserData);
+            return -1;
+        }
+    }
+
+    pthread_mutex_unlock(&mutexUserData);
+    return -1;
+}
+
+int initMutex() {
+    return pthread_mutex_init(&mutexUserData, NULL);
+}
+
 //init UserData
-void initUserData() {
-    clearUserData();
+int initUserData() {
+    if (initMutex() >= 0) {
+        clearUserData();
+        return 1;
+    } else {
+        errorPrint("Error: Mutex could not be initialized");
+        return -1;
+    }
 }
 
 //gibt aktuelle anzahl der angemeldeten User zurück
@@ -91,26 +122,34 @@ int addUser(char *username, int socketID) {
                 userAmount++;
 
                 pthread_mutex_unlock(&mutexUserData);
+                incrementSemaphore(); //for ScoreAgent to be executed
+
                 return 1;
 
             } else {
                 pthread_mutex_unlock(&mutexUserData);
-                errorPrint("No free slot");
+                errorPrint("Error: No free slot");
                 return -1;
             }
         } else {
-            errorPrint("Error: Maximum numbers of User reached, adding Username: %s not possible!\n", username);
+            errorPrint("Error: Maximum numbers of User reached, adding Username: %s not possible!", username);
+            pthread_mutex_unlock(&mutexUserData);
             return -1;
         }
 
     } else {
-        errorPrint("Error: User with Username: %s already exist!\n", username);
+        errorPrint("Error: User with Username: %s already exist!", username);
+        pthread_mutex_unlock(&mutexUserData);
         return -1;
     }
+}
 
-    //Mutex freigeben
-    pthread_mutex_unlock(&mutexUserData);
-    return 1;
+USER getUser(int id){
+    return userdata[id];
+}
+
+int getSocketID(int id){
+    return userdata[id].clientSocket;
 }
 
 //return 1 => true
@@ -127,15 +166,21 @@ int nameExist(char *username) {
 }
 
 //loescht ein User anhand der socketID
-void removeUser(int socketID) {
-
+void removeUserOverSocketID(int socketID) {
     for (int i = 0; i < MAXUSERS; i++) {
         if (userdata[i].clientSocket == socketID) {
             clearUserRow(i);
-            userAmount--;
+            incrementSemaphore(); //for ScoreAgent to be executed
         }
     }
 }
+
+//loescht ein User anhand des index/clientID
+void removeUserOverID(int id) {
+    clearUserRow(id);
+    incrementSemaphore(); //for ScoreAgent to be executed
+}
+
 
 //TODO updateRanking
 void updateRanking() {
@@ -155,6 +200,17 @@ void updateRankingSendPlayerList() {
 
 }
 
+//0 => ja
+//-1=> nein
+int isGameLeader(int id) {
+    if (id == 0) {
+        return 0;
+    } else {
+        return -1;
+    }
+
+}
+
 //DEBUG print UserData
 void printUSERDATA() {
     printf("\n\n");
@@ -165,3 +221,5 @@ void printUSERDATA() {
     }
     printf("\\---------------------------------------------------------------/ \n");
 }
+
+
