@@ -41,7 +41,7 @@ static void fixRFCBody(MESSAGE *message, int direction) {
      */
     switch (message->header.type) {
         case TYPE_LOGIN_REQUEST:
-            if(direction == DIRECTION_RECEIVE) {
+            if (direction == DIRECTION_RECEIVE) {
                 message->body.loginRequest.name[message->header.length - 1] = '\0';
             };
             break;
@@ -52,14 +52,27 @@ static void fixRFCBody(MESSAGE *message, int direction) {
         case TYPE_CATALOG_RESPONSE:
             break;
         case TYPE_CATALOG_CHANGE:
-            if(direction == DIRECTION_RECEIVE) {
+            if (direction == DIRECTION_RECEIVE) {
                 message->body.catalogChange.fileName[message->header.length] = '\0';
             };
             break;
         case TYPE_PLAYER_LIST:
+            if (direction == DIRECTION_RECEIVE) {
+                errorPrint("SIZE OF PLAYER: %zu (should be 37!!!!! remove other error prints too!)", sizeof(PLAYER));
+                int playerCount = message->header.length / sizeof(PLAYER);
+                for (int i = 0; i < playerCount; i++) {
+                    message->body.playerList.players[i].score = ntohl(message->body.playerList.players[i].score);
+                }
+            } else {
+                errorPrint("SIZE OF PLAYER: %zu (should be 37!!!!! remove other error prints too!)", sizeof(PLAYER));
+                int playerCount = message->header.length / sizeof(PLAYER);
+                for (int i = 0; i < playerCount; i++) {
+                    message->body.playerList.players[i].score = htonl(message->body.playerList.players[i].score);
+                }
+            }
             break;
         case TYPE_START_GAME:
-            if(direction == DIRECTION_RECEIVE) {
+            if (direction == DIRECTION_RECEIVE) {
                 message->body.startGame.catalog[message->header.length] = '\0';
             };
             break;
@@ -74,7 +87,7 @@ static void fixRFCBody(MESSAGE *message, int direction) {
         case TYPE_GAME_OVER :
             break;
         case TYPE_ERROR_WARNING :
-            if(direction == DIRECTION_RECEIVE) {
+            if (direction == DIRECTION_RECEIVE) {
                 message->body.errorWarning.message[message->header.length] = '\0';
             };
             break;
@@ -190,8 +203,9 @@ MESSAGE buildCatalogChange(char catalogFileName[]) {
 MESSAGE buildPlayerList(PLAYER players[], int playerCount) {
     MESSAGE msg;
     msg.header.type = TYPE_PLAYER_LIST;
-    msg.header.length = (uint16_t) (playerCount * 37);
-    memcpy(msg.body.playerList.players, players, sizeof(players[0]) * playerCount);
+    msg.header.length = (uint16_t) (playerCount * sizeof(PLAYER));
+    errorPrint("SIZE OF PLAYER: %zu (should be 37!!!!! remove other error prints too!)", sizeof(PLAYER));
+    memcpy(msg.body.playerList.players, players, sizeof(PLAYER) * playerCount);
     return msg;
 }
 
