@@ -7,12 +7,10 @@
  * user.h: Header für die User-Verwaltung
  */
 
-#include "vardefine.h"
-
 #ifndef USER_H
 #define USER_H
 
-
+#include "vardefine.h"
 
 typedef struct user {
     int index;
@@ -21,16 +19,22 @@ typedef struct user {
     int clientSocket; //Socket-Deskriptor
 } USER;
 
-void clearUserRow(int id);
-void clearUserData();
 void initUserData();
-int getUserAmount();
-int getFreeSlotID();
+
 int addUser(char *username, int socketID);
-int nameExist(char *username);
+
 void removeUser(int socketID);
+
+int getUserAmount();
+
+void clearUserData();
+
+int nameExist(char *username);
+
 void printUSERDATA();
-void updateRankingSendPlayerList();
+
+void updateRankingAndSendPlayerList();
+
 void updateRanking();
 
 
