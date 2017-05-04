@@ -48,8 +48,8 @@ enum {
 
 #pragma pack(push, 1)
 typedef struct {
-    char name[RFC_PLAYER_NAME_LENGTH];
     uint8_t rfcVersion;
+    char name[RFC_PLAYER_NAME_LENGTH];
 } LOGIN_REQUEST;
 
 typedef struct {

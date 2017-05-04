@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     args[3] = "-l";
     args[4] = "/media/sf_quiz/bin/loader";
     args[5] = "-p";
-    args[6] = "8000";
+    args[6] = argv[2];
     args[7] = "-d";
     argv = args;
     argc = 8;
@@ -76,8 +76,7 @@ int main(int argc, char **argv) {
     //createIPCs();
 
     //Debug-Arthur
-    int port = 5556;
-    startLoginThread(&port);
+    startLoginThread(&config.port);
 
     while (1) {
 

@@ -40,7 +40,13 @@ static void fixRFCBody(MESSAGE *message, int direction) {
      * Wenn man ein Feld vom typ uint_32+ benutzt, einmal die byte order per ntohl() umdrehen
      */
     switch (message->header.type) {
-
+        case TYPE_LOGIN_REQUEST:
+            if(direction == DIRECTION_RECEIVE) {
+                message->body.loginRequest.name[message->header.length - 1] = '\0';
+            };
+            break;
+        default:
+            break;
     }
 }
 
@@ -65,6 +71,7 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
 int validateMessage(MESSAGE *message) {
     switch (message->header.type) {
         case TYPE_LOGIN_REQUEST:
+            errorPrint("Got name:\t%s", message->body.loginRequest.name);
             if (message->body.loginRequest.rfcVersion != RFC_VERSION) {
                 errorPrint("RFC version of login request is wrong. Expected %d, got %d.", RFC_VERSION,
                            message->body.loginRequest.rfcVersion);
