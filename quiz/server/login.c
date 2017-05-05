@@ -30,7 +30,7 @@
 
 pthread_t loginThreadID = 0;
 
-//starts a loginThread
+//Main - start function for login thread
 int startLoginThread(int *port) {
 
     int err;
@@ -51,7 +51,7 @@ int getGameMode() {
     return -1;
 }
 
-//Rückgabewert -1 bei Fehler
+//return -1 on error
 int startLoginListener(int *port) {
 
     //Initialise UserData
@@ -65,7 +65,7 @@ int startLoginListener(int *port) {
     //Socket create type AF_INET IPv4, TCP
     const int listen_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_sock < 0) {
-        errorPrint("Could not ceate socket");
+        errorPrint("Could not create listen socket for server");
         return -1;
     }
 
@@ -91,13 +91,10 @@ int startLoginListener(int *port) {
         infoPrint("Bind socket to local IP on Port: %d, and listening...", *port);
     }
 
-    putchar('\n');
-
     while (1) {
         //waits for client connection
         //accept() - blockiert und wartet bis eine Verbindung vom Client aufgebaut wird
         //client_sock beinhaltet den Socket-Deskriptor des Clients
-
         client_sock = accept(listen_sock, NULL, NULL);
 
         if (client_sock < 0) {

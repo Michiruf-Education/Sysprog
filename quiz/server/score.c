@@ -27,6 +27,7 @@
 static sem_t trigger;        // Zugriff nur über Funktionen dieses Moduls!
 pthread_t scoreThreadID = 0;
 
+//initialize Semaphore
 int initSemaphore() {
     return sem_init(&trigger, 0, 0);
 }
@@ -36,14 +37,17 @@ int incrementScoreAgentSemaphore() {
     return sem_post(&trigger);
 }
 
-//starts a ScoreAgentThread
+//Main - start function for the ScoreAgentThread
 int startScoreAgentThread() {
 
     if (initSemaphore() >= 0) {
         int err;
         err = pthread_create(&scoreThreadID, NULL, (void *) &startScoreAgent, NULL);
         if (err == 0) {
-            infoPrint("Score agent thread created successfully");
+            infoPrint("ScoreAgent thread created successfully");
+
+            //waits for the thread until terminate
+            pthread_join(scoreThreadID, NULL);
             return 1;
         } else {
             errorPrint("Error: Can't create Score agent thread");
