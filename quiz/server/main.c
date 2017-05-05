@@ -81,9 +81,6 @@ int main(int argc, char **argv) {
     startLoginThread(&config.port);
     startScoreAgentThread();
 
-    while (1) {
-
-    }
 
     return 0;
 }
