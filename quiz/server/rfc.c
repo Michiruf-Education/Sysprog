@@ -78,13 +78,13 @@ static void fixRFCBody(MESSAGE *message, int direction) {
             break;
         case TYPE_QUESTION:
             break;
-        case TYPE_QUESTION_ANSWERED :
+        case TYPE_QUESTION_ANSWERED:
             break;
-        case TYPE_QUESTION_RESULT :
+        case TYPE_QUESTION_RESULT:
             break;
-        case TYPE_GAME_OVER :
+        case TYPE_GAME_OVER:
             break;
-        case TYPE_ERROR_WARNING :
+        case TYPE_ERROR_WARNING:
             if (direction == DIRECTION_RECEIVE) {
                 message->body.errorWarning.message[message->header.length] = '\0';
             };
@@ -145,13 +145,13 @@ int validateMessage(MESSAGE *message) {
             break;
         case TYPE_QUESTION:
             break;
-        case TYPE_QUESTION_ANSWERED :
+        case TYPE_QUESTION_ANSWERED:
             break;
-        case TYPE_QUESTION_RESULT :
+        case TYPE_QUESTION_RESULT:
             break;
-        case TYPE_GAME_OVER :
+        case TYPE_GAME_OVER:
             break;
-        case TYPE_ERROR_WARNING :
+        case TYPE_ERROR_WARNING:
             break;
         default:
             errorPrint("RFC type is unknown");
