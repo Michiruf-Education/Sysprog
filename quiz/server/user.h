@@ -31,6 +31,8 @@ void removeUserOverID(int id);
 
 USER getUser(int id);
 
+USER getUserByIndex(int index);
+
 int getSocketID(int id);
 
 int getUserAmount();

@@ -23,7 +23,7 @@
 #include "user.h"
 
 //------------------------------------------------------------------------------
-// Fields and method predeclaration
+// Fields and method pre-declaration
 //------------------------------------------------------------------------------
 int currentGameState;
 
@@ -35,9 +35,9 @@ void cleanupClientThread(int userId);
 
 void handleConnectionTimeout(int userId);
 
-void handleCatalogRequest(MESSAGE message, int userId);
+void handleCatalogRequest(int userId);
 
-void handleCatalogChange(MESSAGE message, int userId);
+void handleCatalogChange(MESSAGE message);
 
 void handleStartGame(MESSAGE message, int userId);
 
@@ -83,10 +83,10 @@ void clientThread(int userId) {
 
                 switch (message.header.type) {
                     case TYPE_CATALOG_REQUEST:
-                        handleCatalogRequest(message, userId);
+                        handleCatalogRequest(userId);
                         break;
                     case TYPE_CATALOG_CHANGE:
-                        handleCatalogChange(message, userId);
+                        handleCatalogChange(message);
                         break;
                     case TYPE_START_GAME:
                         handleStartGame(message, userId);
@@ -120,32 +120,86 @@ static void handleConnectionTimeout(int userId) {
     errorPrint("Player %d has left the game", userId);
 
     if (isGameLeader(userId) > 0 && currentGameState == GAME_STATE_PREPARATION) {
-        sendGlobalError("Game leader left the game.");
+        MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, "Game leader left the game.");
+        if (sendMessage(getUser(userId).clientSocket, &errorWarning) < 0) {
+            errorPrint("Unable to send error warning to %s (%d)!",
+                       getUser(userId).username,
+                       getUser(userId).index);
+        }
         cancelAllServerThreads(); // TODO need to do a central station to register threads
-    } else if (getUserAmount() <= 2 && currentGameState == GAME_STATE_GAME_RUNNING) {
-        sendGlobalError("Game cancelled because there are less than 2 players left.");
+        return;
+    }
+
+    if (getUserAmount() <= 2 && currentGameState == GAME_STATE_GAME_RUNNING) {
+        MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL,
+                                                 "Game cancelled because there are less than 2 players left.");
+        if (sendMessage(getUser(userId).clientSocket, &errorWarning) < 0) {
+            errorPrint("Unable to send error warning to %s (%d)!",
+                       getUser(userId).username,
+                       getUser(userId).index);
+        }
         cancelAllServerThreads();
-    } else {
-        pthread_exit(0);
+        return;
+    }
+
+    errorPrint("Connection timeout by %d", userId);
+    pthread_exit(0); // TODO lookup man again!
+}
+
+static void handleCatalogRequest(int userId) {
+    for (int i = 0; i < getCatalogCount(); i++) { // TODO shell contain the empty catalog!
+        MESSAGE catalogResponse = buildCatalogResponse(getCatalog(i).name);
+        if (sendMessage(getUser(userId).clientSocket, &catalogResponse) < 0) {
+            errorPrint("Unable to send catalog response to %s (%d)!",
+                       getUser(userId).username,
+                       getUser(userId).index);
+        }
     }
 }
 
-static void handleCatalogRequest(MESSAGE message, int userId) {
-    // TODO
-}
-
-static void handleCatalogChange(MESSAGE message, int userId) {
-    // TODO
+static void handleCatalogChange(MESSAGE message) {
+    MESSAGE catalogChangeResponse = buildCatalogChange(message.body.catalogChange.fileName);
+    for (int i = 0; i < getUserAmount(); i++) {
+        if (sendMessage(getUserByIndex(i).clientSocket, &catalogChangeResponse) < 0) {
+            errorPrint("Unable to send catalog change response to user %s (%d)!",
+                       getUserByIndex(i).username,
+                       getUserByIndex(i).index);
+        }
+    }
 }
 
 static void handleStartGame(MESSAGE message, int userId) {
-    // TODO
+    if (getUserAmount() < 4) { // TODO remove hardcoded stuff -> min-players define
+        MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_WARNING,
+                                                 "Cannot start game because there are too few participants!");
+        if (sendMessage(getUser(userId).clientSocket, &errorWarning) < 0) {
+            errorPrint("Unable to send error warning to %s (%d)!",
+                       getUser(userId).username,
+                       getUser(userId).index);
+        }
+        return;
+    }
+
+    loadCatalog(message.body.startGame.catalog);
+    currentGameState = GAME_STATE_GAME_RUNNING;
+
+    MESSAGE startGameResponse = buildStartGame(message.body.startGame.catalog);
+    for (int i = 0; i < getUserAmount(); i++) {
+        if (sendMessage(getUserByIndex(i).clientSocket, &startGameResponse) < 0) {
+            errorPrint("Unable to send start game response to user %s (%d)!",
+                       getUserByIndex(i).username,
+                       getUserByIndex(i).index);
+        }
+    }
+
+    // TODO tell score agent to send initial points -> semaphore!
+
 }
 
 static void handleQuestionRequest(MESSAGE message, int userId) {
-    // TODO
+    // TODO Next assignment
 }
 
 static void handleQuestionAnswered(MESSAGE message, int userId) {
-    // TODO
+    // TODO Next assignment
 }

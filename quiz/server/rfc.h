@@ -41,6 +41,11 @@ enum {
     TYPE_ERROR_WARNING = 255
 };
 
+enum {
+    ERROR_WARNING_TYPE_WARNING = 0,
+    ERROR_WARNING_TYPE_FATAL = 1
+};
+
 
 //------------------------------------------------------------------------------
 // Request and response types
