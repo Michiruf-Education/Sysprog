@@ -23,12 +23,13 @@
 #include "login.h"
 #include "score.h"
 #include "threadholder.h"
+#include "catalog.h"
 
 #define LOCK_FILE "server.lock"
 
-typedef struct configuration {
-    char *catalog_path;
-    char *loader_path;
+typedef struct {
+    char *catalogPath;
+    char *loaderPath;
     int port;
 } CONFIGURATION;
 
@@ -92,12 +93,14 @@ int main(int argc, char **argv) {
         exit(1);
     }
     debugPrint("Configuration:");
-    debugPrint("    Catalog-path:\t%s", config.catalog_path);
-    debugPrint("    Loader-path:\t%s", config.loader_path);
+    debugPrint("    Catalog-path:\t%s", config.catalogPath);
+    debugPrint("    Loader-path:\t%s", config.loaderPath);
     debugPrint("    Port:\t\t%d", config.port);
 
 
     // Start the application
+    createCatalogChildProcess(config.catalogPath, config.loaderPath);
+    errorPrint("CC %d", getCatalogCount());
     startLoginThread(&config.port);
     startAwaitScoreAgentThread();
 
@@ -108,8 +111,8 @@ int main(int argc, char **argv) {
 
 static CONFIGURATION initConfiguration() {
     CONFIGURATION config;
-    config.catalog_path = "./";
-    config.loader_path = "./loader";
+    config.catalogPath = "./";
+    config.loaderPath = "./loader";
     config.port = 8000;
     return config;
 }
@@ -123,11 +126,11 @@ static bool parseArguments(int argc, char **argv, CONFIGURATION *config) {
     while ((param = getopt(argc, argv, "c:l:p:dm")) != -1) {
         switch (param) {
             case 'c':
-                config->catalog_path = optarg;
+                config->catalogPath = optarg;
                 categorySet = true;
                 break;
             case 'l':
-                config->loader_path = optarg;
+                config->loaderPath = optarg;
                 loaderSet = true;
                 break;
             case 'p':
