@@ -94,14 +94,8 @@ int main(int argc, char **argv) {
     debugPrint("    Loader-path:\t%s", config.loader_path);
     debugPrint("    Port:\t\t%d", config.port);
 
-    // TODO
-    //start_loader();
-    //browserCatalogs();
-    //signal(SIGINT, ShutDownServer);
-    //createIPCs();
 
-    // TODO LOCK FILE!!!
-
+    // Start the application
     startLoginThread(&config.port);
     startScoreAgentThread();
 
