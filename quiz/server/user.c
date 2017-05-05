@@ -91,16 +91,16 @@ int getUserAmount() {
     return userAmount;
 }
 
-//TODO test-debug
+//TODO test-debug code-reverse
 PLAYER_LIST getPlayerList() {
     pthread_mutex_lock(&mutexUserData);
     PLAYER_LIST allActivePlayers;
 
     if (getUserAmount() > 0) {
-
+        int nextSlot = 0;
         for (int i = 0; i < getUserAmount(); i++) {
-            for (int j = 0; j < MAXUSERS; j++) {
 
+            for (int j = nextSlot; j < MAXUSERS; j++) {
                 PLAYER activePlayer;
 
                 if (userdata[j].index != -1) {
@@ -109,8 +109,10 @@ PLAYER_LIST getPlayerList() {
                     activePlayer.id = userdata[j].index;
 
                     allActivePlayers.players[i] = activePlayer;
+                    nextSlot = j;
                     j = MAXUSERS;
                 }
+                nextSlot++;
             }
         }
     }
