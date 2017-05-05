@@ -43,9 +43,12 @@ void cancelAllServerThreads() {
     LIST_ITEM *item = first;
     while (item != NULL) {
         LIST_ITEM *removeCacheItem = item;
+        infoPrint("Cancelling thread %p", item->threadId);
         pthread_kill(item->threadId, 0);
         item = item->next;
         free(removeCacheItem);
     }
     first = NULL;
+
+    infoPrint("Cancelling all server threads... DONE");
 }
