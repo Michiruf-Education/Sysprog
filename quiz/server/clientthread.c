@@ -34,6 +34,8 @@ int currentGameState;
 
 pthread_t clientThreadId = 0;
 
+char *selectedCatalogName = NULL;
+
 void clientThread(int *userIdPrt);
 
 static void cleanupClientThread(int *userIdPtr);
@@ -194,7 +196,6 @@ static void handleCatalogRequest(int userId) {
         // We need to send a catalog change after the catalog request for new user to get the
         // selected catalog immediately and not have to wait for a catalog change
         // by the game leader
-        char *selectedCatalogName = getSelectedCatalogName();
         if (selectedCatalogName != NULL && strlen(selectedCatalogName) > 0) {
             MESSAGE catalogChange = buildCatalogChange(selectedCatalogName);
             if (sendMessage(getUser(userId).clientSocket, &catalogChange) < 0) {
@@ -207,7 +208,7 @@ static void handleCatalogRequest(int userId) {
 }
 
 static void handleCatalogChange(MESSAGE message) {
-    setSelectedCatalogName(message.body.catalogChange.fileName);
+    selectedCatalogName = message.body.catalogChange.fileName;
     MESSAGE catalogChangeResponse = buildCatalogChange(message.body.catalogChange.fileName);
     for (int i = 0; i < getUserAmount(); i++) {
         if (sendMessage(getUserByIndex(i).clientSocket, &catalogChangeResponse) < 0) {

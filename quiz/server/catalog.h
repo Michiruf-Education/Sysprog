@@ -13,10 +13,6 @@ int getCatalogCount();
 
 char *getCatalogNameByIndex(int index);
 
-void setSelectedCatalogName(char *name);
-
-char *getSelectedCatalogName();
-
 int loadCatalog(char catalogFile[]);
 
 #endif

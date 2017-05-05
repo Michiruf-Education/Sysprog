@@ -13,8 +13,6 @@
 #include "../common/server_loader_protocol.h"
 #include "catalog.h"
 
-char *selectedCatalogName = NULL;
-
 int getCatalogCount() {
     // TODO Remove fake of data
     return 3;
@@ -29,14 +27,6 @@ char *getCatalogNameByIndex(int index) {
     } else {
         return "\0";
     }
-}
-
-void setSelectedCatalogName(char *name) {
-    selectedCatalogName = name;
-}
-
-char *getSelectedCatalogName() {
-    return selectedCatalogName;
 }
 
 int loadCatalog(char catalogFile[]) {
