@@ -14,6 +14,8 @@ int startScoreAgentThread();
 
 void startScoreAgent();
 
+int initSemaphore();
+
 int incrementScoreAgentSemaphore();
 
 #endif
