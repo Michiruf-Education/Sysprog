@@ -22,6 +22,7 @@
 #include "../common/util.h"
 #include "login.h"
 #include "score.h"
+#include "threadholder.h"
 
 #define LOCK_FILE "server.lock"
 
@@ -161,7 +162,7 @@ static void printUsage() {
 }
 
 static void shutdownServer() {
-    // TODO cancelAllServerThreads();
+    cancelAllServerThreads();
     removeLockFile();
     exit(0);
 }

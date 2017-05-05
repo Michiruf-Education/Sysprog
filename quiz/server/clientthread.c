@@ -26,6 +26,7 @@
 #include "user.h"
 #include "score.h"
 #include "catalog.h"
+#include "threadholder.h"
 
 //------------------------------------------------------------------------------
 // Fields and method pre-declaration
@@ -61,6 +62,7 @@ static void handleQuestionAnswered(MESSAGE message, int userId);
 //------------------------------------------------------------------------------
 int startClientThread(int userId) {
     int err = pthread_create(&clientThreadId, NULL, (void *) &clientThread, &userId);
+    registerThread(clientThreadId);
     if (err == 0) {
         infoPrint("Client thread created successfully.");
     } else {
@@ -73,7 +75,7 @@ void clientThread(int *userIdPrt) {
     pthread_cleanup_push((void *) &cleanupClientThread, userIdPrt);
         int userId = *userIdPrt;
 
-        if (isGameLeader(userId)) {
+        if (isGameLeader(userId) >= 0) {
             currentGameState = GAME_STATE_PREPARATION;
         }
 
@@ -162,7 +164,7 @@ static void handleConnectionTimeout(int userId) {
                            getUserByIndex(i).index);
             }
         }
-//        cancelAllServerThreads(); // TODO need to do a central station to register threads
+        cancelAllServerThreads();
         return;
     }
 
@@ -176,7 +178,7 @@ static void handleConnectionTimeout(int userId) {
                            getUserByIndex(i).index);
             }
         }
-//        cancelAllServerThreads();
+        cancelAllServerThreads();
         return;
     }
 
