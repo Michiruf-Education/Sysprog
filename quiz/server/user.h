@@ -48,8 +48,11 @@ void updateRanking();
 
 int isGameLeader(int id);
 
+PLAYER_LIST getPlayerList();
+
 void printUSERDATA();
 
-PLAYER_LIST getPlayerList();
+void printPLAYERLIST();
+
 
 #endif
