@@ -193,7 +193,7 @@ ssize_t sendMessage(int socketId, MESSAGE *message) {
     }
 
     debugPrint("\\\\\\\\\\\\\\\\ FAILURE \\\\\\\\\\\\\\\\");
-    return -1;
+    return -1; // TODO we could return the send size here?!
 }
 
 MESSAGE buildLoginResponseOk(uint8_t rfcVersion, uint8_t maxPlayerCount, uint8_t clientId) {
