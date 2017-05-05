@@ -79,7 +79,6 @@ void startScoreAgent() {
                 errorPrint("Error: ScoreAgent Send Message PlayerList");
             }
         }
-
     }
 
 

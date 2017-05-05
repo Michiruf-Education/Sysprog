@@ -241,4 +241,16 @@ void printUSERDATA() {
     infoPrint("\\---------------------------------------------------------------/ \n");
 }
 
+void printPLAYERLIST() {
+    PLAYER_LIST tmpPlayerLst = getPlayerList();
+
+    infoPrint("\n\n");
+    infoPrint("/------------------------PLAYER-LIST------------------------------\\\n");
+    for (int i = 0; i < getUserAmount(); i++) {
+        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t|\n", tmpPlayerLst.players[i].id,
+                  tmpPlayerLst.players[i].name,
+                  tmpPlayerLst.players[i].score);
+    }
+    infoPrint("\\---------------------------------------------------------------/ \n");
+}
 
