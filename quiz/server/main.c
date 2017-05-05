@@ -160,7 +160,7 @@ static void printUsage() {
 }
 
 static void shutdownServer() {
-//    cancelAllServerThreads();
+    cancelAllServerThreads();
     removeLockFile();
     infoPrint("(Shutdown server) Exiting...");
     exit(0);
