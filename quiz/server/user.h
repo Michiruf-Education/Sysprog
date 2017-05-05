@@ -10,6 +10,49 @@
 #ifndef USER_H
 #define USER_H
 
-/* ... */
+#include "vardefine.h"
+#include "rfc.h"
+
+//TODO parameter umbennen/anpassen
+
+typedef struct user {
+    int index; // TODO rename to ID
+    char username[USERNAMELENGTH]; //sicherstellen das der Username mit \0 Terminiert wird
+    unsigned int score;
+    int clientSocket; //Socket-Deskriptor
+} USER;
+
+int initUserData();
+
+int addUser(char *username, int socketID);
+
+void removeUserOverSocketID(int socketID);
+
+void removeUserOverID(int id);
+
+USER getUser(int id);
+
+USER getUserByIndex(int index);
+
+int getSocketID(int id);
+
+int getUserAmount();
+
+int getClientIDforUser(int clientSocket);
+
+void clearUserData();
+
+int nameExist(char *username);
+
+void updateRanking();
+
+int isGameLeader(int id);
+
+PLAYER_LIST getPlayerList();
+
+void printUSERDATA();
+
+void printPLAYERLIST();
+
 
 #endif

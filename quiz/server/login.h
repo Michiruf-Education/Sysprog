@@ -10,6 +10,8 @@
 #ifndef LOGIN_H
 #define LOGIN_H
 
-/* ... */
+int startLoginThread(int *port);
+
+int startLoginListener(int *port);
 
 #endif

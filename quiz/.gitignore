@@ -4,8 +4,14 @@
 *.swp
 *.bak
 *~
+server.lock
 .cproject
 .project
 .settings
 Debug/
 Release/
+
+# JetBrains (CLion)
+.idea
+# CMake
+cmake-build-debug
