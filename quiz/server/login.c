@@ -38,7 +38,7 @@ int startLoginThread(int *port) {
     err = pthread_create(&loginThreadID, NULL, (void *) &startLoginListener, (void *) port);
     if (err == 0) {
         infoPrint("Login thread created successfully");
-        //registerThread(loginThreadID);
+        registerThread(loginThreadID);
     } else {
         errorPrint("Can't create Login thread");
     }

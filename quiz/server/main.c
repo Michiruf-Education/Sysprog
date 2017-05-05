@@ -88,6 +88,7 @@ int main(int argc, char **argv) {
     CONFIGURATION config = initConfiguration();
     if (!parseArguments(argc, argv, &config)) {
         printUsage();
+        infoPrint("Exiting...");
         exit(1);
     }
     debugPrint("Configuration:");
@@ -101,6 +102,7 @@ int main(int argc, char **argv) {
     startScoreAgentThread();
 
 
+    infoPrint("Exiting regular (main done)...");
     return 0;
 }
 
@@ -155,12 +157,12 @@ static void printUsage() {
     errorPrint("        -d        Enable debug output");
     errorPrint("CURRENTLY ONLY WORKS WITH DEBUG ENABLED! SEE README.txt!"); // TODO Remove later
     errorPrint("        -m        Disable colors in debug output");
-    exit(1);
 }
 
 static void shutdownServer() {
-    cancelAllServerThreads();
+//    cancelAllServerThreads();
     removeLockFile();
+    infoPrint("(Shutdown server) Exiting...");
     exit(0);
 }
 
@@ -172,7 +174,7 @@ static void createLockFile() {
     FILE *lockFile = fopen(LOCK_FILE, "w+");
     infoPrint("Creating lock file: %s", LOCK_FILE);
     if (lockFile == NULL) {
-        errorPrint("Could not create log file! Exiting...");
+        errorPrint("Could not create lock file! Exiting...");
         exit(1);
     }
     fclose(lockFile);

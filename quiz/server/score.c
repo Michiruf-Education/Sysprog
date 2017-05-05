@@ -44,7 +44,7 @@ int startScoreAgentThread() {
     if (initSemaphore() >= 0) {
         int err;
         err = pthread_create(&scoreThreadID, NULL, (void *) &startScoreAgent, NULL);
-        //registerThread(scoreThreadID);
+        registerThread(scoreThreadID);
         if (err == 0) {
             infoPrint("ScoreAgent thread created successfully");
 
