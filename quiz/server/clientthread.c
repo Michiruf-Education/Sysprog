@@ -35,6 +35,10 @@ void clientThread(int userId);
 
 static void cleanupClientThread(int userId);
 
+static int isMessageTypeAllowedInCurrentGameState(int gameState, int messageType);
+
+static int isUserAuthorizedForMessageType(int messageType, int userId);
+
 static void handleConnectionTimeout(int userId);
 
 static void handleCatalogRequest(int userId);
@@ -72,18 +76,16 @@ void clientThread(int userId) {
         ssize_t messageSize = receiveMessage(getUser(userId).clientSocket, &message) >= 0 && validateMessage(&message);
         if (messageSize > 0) {
             if (validateMessage(&message) >= 0) {
-                // TODO
-//                if (isMessageTypeAllowedInCurrentGameState(message.header.type, userId) < 0) {
-//                    errorPrint("User %d not allowed to send RFC type %d in current game state!", userId,
-//                               message.header.type);
-//                    return;
-//                }
+                if (isMessageTypeAllowedInCurrentGameState(currentGameState, message.header.type) < 0) {
+                    errorPrint("User %d not allowed to send RFC type %d in current game state: %d!", userId,
+                               message.header.type, currentGameState);
+                    return;
+                }
 
-                // TODO
-//                if (isUserAuthorizedForMessageType(userId, userId, message.header.type) < 0) {
-//                    errorPrint("User %d not allowed to send RFC type %d!", userId, message.header.type);
-//                    return;
-//                }
+                if (isUserAuthorizedForMessageType(userId, message.header.type) < 0) {
+                    errorPrint("User %d not allowed to send RFC type %d!", userId, message.header.type);
+                    return;
+                }
 
                 switch (message.header.type) {
                     case TYPE_CATALOG_REQUEST:
@@ -120,6 +122,17 @@ static void cleanupClientThread(int userId) {
     // TODO
 }
 
+static int isMessageTypeAllowedInCurrentGameState(int gameState, int messageType) {
+    return (gameState == GAME_STATE_PREPARATION && !(messageType > 0 && messageType <= 7)) ||
+           (gameState == GAME_STATE_GAME_RUNNING && !(messageType > 7 && messageType <= 12)) ||
+           (gameState == GAME_STATE_FINISHED)
+           ? -1 : 1;
+}
+
+static int isUserAuthorizedForMessageType(int messageType, int userId) {
+    return isGameLeader(userId) >= 0 || !(messageType == TYPE_CATALOG_CHANGE || messageType == TYPE_START_GAME);
+}
+
 static void handleConnectionTimeout(int userId) {
     errorPrint("Player %d has left the game", userId);
 
@@ -151,6 +164,7 @@ static void handleConnectionTimeout(int userId) {
 }
 
 static void handleCatalogRequest(int userId) {
+    errorPrint("GOT CATALOG REQUEST!");
     // TODO
 //    for (int i = 0; i < getCatalogCount(); i++) { // TODO shell contain the empty catalog!
 //        MESSAGE catalogResponse = buildCatalogResponse(getCatalog(i).name);
