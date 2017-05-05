@@ -101,15 +101,15 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
         uint16_t bodyLength = message->header.length;
         debugPrint("====== GOT MESSAGE ======");
         debugPrint("Type:\t\t\t%d", message->header.type);
-        debugPrint("Header size: \t\t%zu", headerSize);
-        debugPrint("Header's body length: \t%lu", (unsigned long) bodyLength);
+        debugPrint("Header size:\t\t%zu", headerSize);
+        debugPrint("Header's body length:\t%lu", (unsigned long) bodyLength);
         if (bodyLength == 0) {
-            debugPrint("(Non-)read body length: %d", 0);
+            debugPrint("(Non-)read body length:\t%d", 0);
             debugPrint("//////// SUCCESS ////////");
             return headerSize;
         }
         ssize_t bodySize = recv(socketId, &message->body, bodyLength, MSG_WAITALL);
-        debugPrint("Read body length: \t%zu", bodySize);
+        debugPrint("Read body length:\t%zu", bodySize);
         if (bodySize == bodyLength) {
             fixRFCBody(message, DIRECTION_RECEIVE);
             debugPrint("//////// SUCCESS ////////");
@@ -173,15 +173,15 @@ ssize_t sendMessage(int socketId, MESSAGE *message) {
 
     debugPrint("==== SENDING MESSAGE ====");
     debugPrint("Type:\t\t\t%d", message->header.type);
-    debugPrint("Header's body length: \t%lu", (unsigned long) headerLength);
-    debugPrint("Complete length: \t%zu", completeLength);
+    debugPrint("Header's body length:\t%lu", (unsigned long) headerLength);
+    debugPrint("Complete length:\t%zu", completeLength);
 
     // Reverse byte order (do body first because we can then access the header)
     fixRFCBody(message, DIRECTION_SEND);
     fixRFCHeader(message, DIRECTION_SEND);
 
     ssize_t sendSize = send(socketId, message, completeLength, 0);
-    debugPrint("Sent length: \t\t%zu", sendSize);
+    debugPrint("Sent length:\t\t%zu", sendSize);
 
     // Undo reverse of byte order (important for sending message more than once!)
     fixRFCHeader(message, DIRECTION_RECEIVE);

@@ -21,8 +21,6 @@
 #define RFC_PLAYER_COUNT_MAXIMUM 4
 #define RFC_ERROR_WARNING_MAX_LENGTH 400
 
-void initRFC();
-
 //------------------------------------------------------------------------------
 // Type definition and parsing (for switching)
 //------------------------------------------------------------------------------
@@ -159,17 +157,3 @@ void buildGameOver(...);
 MESSAGE buildErrorWarning(uint8_t subtype, char message[]);
 
 #endif
-
-
-
-/*
-MESSAGE message;
-receiveMessage(socketId, &message);
-switch(message.header.type) {
-    case TYPE_LOGIN_REQUEST:
-        // message.body.loginRequest.... // TODO access the fields of the message here
-        MESSAGE msg = buildLoginResponseOk(message.body.loginRequest.rfcVersion, maxPlayerCount, clientId);
-        sendMessage(socketId, &msg);
-        break;
-}
-*/
