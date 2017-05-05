@@ -45,7 +45,8 @@ SERVER_MODULES=server/catalog.o \
 	       server/rfc.o \
 	       server/score.o \
 	       server/user.o \
-	       common/util.o
+	       server/threadholder.o \
+           common/util.o
 
 LOADER_MODULES=loader/browse.o \
 	       loader/load.o \
