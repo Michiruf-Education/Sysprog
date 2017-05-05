@@ -19,4 +19,6 @@ char *getSelectedCatalogName();
 
 int loadCatalog(char catalogFile[]);
 
+void createCatalogChildProcess(char *catalog_path, char *loader_path);
+
 #endif
