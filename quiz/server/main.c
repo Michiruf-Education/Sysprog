@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
     // TODO End remove fake args
 
 
-    setProgName(argv[0]);
+    setProgName(basename(argv[0]));
 
     // Initialize configuration to work with
     CONFIGURATION config = initConfiguration();
@@ -137,6 +137,7 @@ static void printUsage() {
     errorPrint("        -l        Specify loader location. Required.");
     errorPrint("        -p        Specify port. Required");
     errorPrint("        -d        Enable debug output");
+    errorPrint("CURRENTLY ONLY WORKS WITH DEBUG ENABLED! SEE README.txt!"); // TODO Remove later
     errorPrint("        -m        Disable colors in debug output");
     exit(1);
 }

@@ -19,6 +19,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
 #include "../common/util.h"
 #include "clientthread.h"
 #include "rfc.h"
@@ -189,10 +190,24 @@ static void handleCatalogRequest(int userId) {
                        getUser(userId).username,
                        getUser(userId).index);
         }
+
+        // We need to send a catalog change after the catalog request for new user to get the
+        // selected catalog immediately and not have to wait for a catalog change
+        // by the game leader
+        char *selectedCatalogName = getSelectedCatalogName();
+        if (selectedCatalogName != NULL && strlen(selectedCatalogName) > 0) {
+            MESSAGE catalogChange = buildCatalogChange(selectedCatalogName);
+            if (sendMessage(getUser(userId).clientSocket, &catalogChange) < 0) {
+                errorPrint("Unable to send catalog change (after catalog response) to %s (%d)!",
+                           getUser(userId).username,
+                           getUser(userId).index);
+            }
+        }
     }
 }
 
 static void handleCatalogChange(MESSAGE message) {
+    setSelectedCatalogName(message.body.catalogChange.fileName);
     MESSAGE catalogChangeResponse = buildCatalogChange(message.body.catalogChange.fileName);
     for (int i = 0; i < getUserAmount(); i++) {
         if (sendMessage(getUserByIndex(i).clientSocket, &catalogChangeResponse) < 0) {
