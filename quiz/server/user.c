@@ -22,6 +22,7 @@
 #include "../common/util.h"
 #include "vardefine.h"
 #include "score.h"
+#include "rfc.h"
 
 //pthread_t
 pthread_mutex_t mutexUserData;
@@ -50,23 +51,24 @@ void clearUserData() {
     }
 }
 
+//Error: Client ID no available for user beim zweiten durchlauf
 int getClientIDforUser(int clientSocketID) {
+    int clientID = -1;
     pthread_mutex_lock(&mutexUserData);
-
     for (int i = 0; i < MAXUSERS; i++) {
         if (userdata[i].clientSocket == clientSocketID) {
             pthread_mutex_unlock(&mutexUserData);
-            return i;
-
+            clientID = i;
+            i = MAXUSERS;
         } else {
             errorPrint("Error: Client ID no available for user");
             pthread_mutex_unlock(&mutexUserData);
-            return -1;
+            clientID = -1;
         }
     }
 
     pthread_mutex_unlock(&mutexUserData);
-    return -1;
+    return clientID;
 }
 
 int initMutex() {
@@ -87,6 +89,34 @@ int initUserData() {
 //gibt aktuelle anzahl der angemeldeten User zurück
 int getUserAmount() {
     return userAmount;
+}
+
+//TODO test-debug
+PLAYER_LIST getPlayerList() {
+    pthread_mutex_lock(&mutexUserData);
+    PLAYER_LIST allActivePlayers;
+
+    if (getUserAmount() > 0) {
+
+        for (int i = 0; i < getUserAmount(); i++) {
+            for (int j = 0; j < MAXUSERS; j++) {
+
+                PLAYER activePlayer;
+
+                if (userdata[j].index != -1) {
+                    memcpy(activePlayer.name, userdata[j].username, USERNAMELENGTH);
+                    activePlayer.score = userdata[j].score;
+                    activePlayer.id = userdata[j].index;
+
+                    allActivePlayers.players[i] = activePlayer;
+                    j = MAXUSERS;
+                }
+            }
+        }
+    }
+    pthread_mutex_unlock(&mutexUserData);
+
+    return allActivePlayers;
 }
 
 //gibt den Index des freien Speicherplatzes in userdata
@@ -122,7 +152,7 @@ int addUser(char *username, int socketID) {
                 userAmount++;
 
                 pthread_mutex_unlock(&mutexUserData);
-                incrementSemaphore(); //for ScoreAgent to be executed
+                incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
 
                 return 1;
 
@@ -144,7 +174,7 @@ int addUser(char *username, int socketID) {
     }
 }
 
-USER getUser(int id){
+USER getUser(int id) {
     return userdata[id];
 }
 
@@ -156,7 +186,7 @@ USER getUserByIndex(int index) {
     return getUser(index);
 }
 
-int getSocketID(int id){
+int getSocketID(int id) {
     return userdata[id].clientSocket;
 }
 
@@ -178,7 +208,7 @@ void removeUserOverSocketID(int socketID) {
     for (int i = 0; i < MAXUSERS; i++) {
         if (userdata[i].clientSocket == socketID) {
             clearUserRow(i);
-            incrementSemaphore(); //for ScoreAgent to be executed
+            incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
         }
     }
 }
@@ -186,7 +216,7 @@ void removeUserOverSocketID(int socketID) {
 //loescht ein User anhand des index/clientID
 void removeUserOverID(int id) {
     clearUserRow(id);
-    incrementSemaphore(); //for ScoreAgent to be executed
+    incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
 }
 
 
@@ -195,17 +225,6 @@ void updateRanking() {
     pthread_mutex_lock(&mutexUserData);
     //update Playerliste erstellen, ggf. Rangliste neu berechnen
     pthread_mutex_unlock(&mutexUserData);
-}
-
-//TODO Fuer Aufgabe 4 aktuell nur aktuellen Spielteilnehmer versenden, Rangliste wird noch nicht erstellt
-void updateRankingSendPlayerList() {
-
-    updateRanking();
-    //TODO versenden der Playerliste
-    //LST - Nachricht senden
-    //rfc-functionen verwenden
-
-
 }
 
 //0 => ja
@@ -221,13 +240,13 @@ int isGameLeader(int id) {
 
 //DEBUG print UserData
 void printUSERDATA() {
-    printf("\n\n");
-    printf("/---------------------------------------------------------------\\\n");
+    infoPrint("\n\n");
+    infoPrint("/---------------------------------------------------------------\\\n");
     for (int i = 0; i < MAXUSERS; i++) {
-        printf("| ID: %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|\n", userdata[i].index, userdata[i].username,
-               userdata[i].score, userdata[i].clientSocket);
+        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|\n", userdata[i].index, userdata[i].username,
+                  userdata[i].score, userdata[i].clientSocket);
     }
-    printf("\\---------------------------------------------------------------/ \n");
+    infoPrint("\\---------------------------------------------------------------/ \n");
 }
 
 
