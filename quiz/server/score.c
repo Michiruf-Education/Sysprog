@@ -20,6 +20,9 @@
 #include "../common/util.h"
 #include <pthread.h>
 #include "rfc.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <memory.h>
 
 static sem_t trigger;        // Zugriff nur über Funktionen dieses Moduls!
 pthread_t scoreThreadID = 0;
@@ -29,7 +32,7 @@ int initSemaphore() {
 }
 
 //increments (unlocks) Semaphore
-int incrementSemaphore(){
+int incrementSemaphore() {
     return sem_post(&trigger);
 }
 
@@ -57,20 +60,27 @@ void startScoreAgent() {
     infoPrint("Starting ScoreAgent...");
 
     while (1) {
-
         //Waits until semaphor is incremented/unlocked and decrements (locks) it again
         sem_wait(&trigger);
         updateRanking();
         //SendPlayerListMSG
-        //MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,(__uint8_t) getClientIDforUser(username));
-    /*
-        MESSAGE sendmessage = buildPlayerList(, getUserAmount());
-        if (sendMessage(client_sock, &sendmessage) >= 0) {
 
-        }*/
+        //Create PlayerList
+        PLAYER_LIST player_list = getPlayerList();
+
+        //MESSAGE buildPlayerList(PLAYER players[], int playerCount);
+        MESSAGE sendmessage = buildPlayerList(player_list.players, getUserAmount());
+        //fuer alle aktiven clients
+
+        for (int i = 0; i < getUserAmount(); i++) {
+            if (sendMessage(getSocketID(player_list.players[i].id), &sendmessage) >= 0) {
+                debugPrint("Debug: ScoreAgent - PlayerList send");
+            } else {
+                errorPrint("Error: ScoreAgent Send Message PlayerList");
+            }
+        }
 
     }
-
 
 
 }

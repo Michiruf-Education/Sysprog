@@ -11,6 +11,7 @@
 #define USER_H
 
 #include "vardefine.h"
+#include "rfc.h"
 
 //TODO parameter umbennen/anpassen
 
@@ -41,11 +42,12 @@ void clearUserData();
 
 int nameExist(char *username);
 
-void printUSERDATA();
-
 void updateRanking();
 
 int isGameLeader(int id);
 
+void printUSERDATA();
+
+PLAYER_LIST getPlayerList();
 
 #endif

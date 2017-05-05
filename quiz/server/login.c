@@ -32,9 +32,6 @@ pthread_t loginThreadID = 0;
 //starts a loginThread
 int startLoginThread(int *port) {
 
-    //Initialise UserData
-    initUserData();
-
     int err;
     err = pthread_create(&loginThreadID, NULL, (void *) &startLoginListener, (void *) port);
     if (err == 0) {
@@ -55,6 +52,9 @@ int getGameMode() {
 
 //Rückgabewert -1 bei Fehler
 int startLoginListener(int *port) {
+
+    //Initialise UserData
+    initUserData();
 
     infoPrint("Starting login listener...");
 
@@ -90,11 +90,15 @@ int startLoginListener(int *port) {
         infoPrint("Bind socket to local IP on Port: %d, and listening...", *port);
     }
 
+    putchar('\n');
+
     while (1) {
         //waits for client connection
         //accept() - blockiert und wartet bis eine Verbindung vom Client aufgebaut wird
         //client_sock beinhaltet den Socket-Deskriptor des Clients
+
         client_sock = accept(listen_sock, NULL, NULL);
+
         if (client_sock < 0) {
             errorPrint("Could not accept client connection");
             return -1;
@@ -110,15 +114,18 @@ int startLoginListener(int *port) {
                 if (message.header.type == TYPE_LOGIN_REQUEST) {
 
                     memcpy(username, message.body.loginRequest.name, USERNAMELENGTH);
+
                     if (addUser(username, client_sock) >= 0) {
                         //Message send
                         int clientID = getClientIDforUser(client_sock);
+                        infoPrint("Client-ID: %d",clientID);
                         MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,
                                                                    (__uint8_t) clientID);
 
                         if (sendMessage(client_sock, &sendmessage) >= 0) {
                             //TODO createClient-Thread
                             //startClientThread(id);
+                            printUSERDATA();
                         } else {
                             errorPrint("Error: Message send failure");
                             //TODO sendFatalErrorMessage();
