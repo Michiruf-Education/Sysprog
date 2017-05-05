@@ -45,7 +45,7 @@ void createCatalogChildProcess(char *catalog_path, char *loader_path) {
 
     } else if (pid == 0) { //We are in Child-process
         //excel loader << BROWSE result in catalog-Array
-
+        //excel();
 
     } else { //We are in Parent-process
 

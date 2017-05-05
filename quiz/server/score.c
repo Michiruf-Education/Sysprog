@@ -20,6 +20,7 @@
 #include "../common/util.h"
 #include <pthread.h>
 #include "rfc.h"
+#include "threadholder.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <memory.h>
@@ -43,6 +44,7 @@ int startScoreAgentThread() {
     if (initSemaphore() >= 0) {
         int err;
         err = pthread_create(&scoreThreadID, NULL, (void *) &startScoreAgent, NULL);
+        //registerThread(scoreThreadID);
         if (err == 0) {
             infoPrint("ScoreAgent thread created successfully");
 
