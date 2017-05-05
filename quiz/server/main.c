@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
     signal(SIGABRT, shutdownServer);
     signal(SIGINT, shutdownServer);
     signal(SIGTERM, shutdownServer);
+    atexit(shutdownServer);
 
     // Initialize and parse arguments for configuration
     CONFIGURATION config = initConfiguration();
