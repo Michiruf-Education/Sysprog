@@ -178,6 +178,14 @@ USER getUser(int id) {
     return userdata[id];
 }
 
+USER getUserByIndex(int index) {
+    // Implementation may be irritating, but we should implement this as we are able to
+    // separate the index and the id in the future.
+    // Doing so we could handle the disconnect of the leader (id: 0) to still get the first connected
+    // user by index.
+    return getUser(index);
+}
+
 int getSocketID(int id) {
     return userdata[id].clientSocket;
 }
