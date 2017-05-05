@@ -11,7 +11,9 @@
 #define SCORE_H
 
 int startScoreAgentThread();
+
 void startScoreAgent();
-int incrementSemaphore();
+
+int incrementScoreAgentSemaphore();
 
 #endif

@@ -108,8 +108,8 @@ PLAYER_LIST getPlayerList() {
                     activePlayer.score = userdata[j].score;
                     activePlayer.id = userdata[j].index;
 
-                    allActivePlayers.players[i]=activePlayer;
-                    j=MAXUSERS;
+                    allActivePlayers.players[i] = activePlayer;
+                    j = MAXUSERS;
                 }
             }
         }
@@ -152,7 +152,7 @@ int addUser(char *username, int socketID) {
                 userAmount++;
 
                 pthread_mutex_unlock(&mutexUserData);
-                incrementSemaphore(); //for ScoreAgent to be executed
+                incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
 
                 return 1;
 
@@ -200,7 +200,7 @@ void removeUserOverSocketID(int socketID) {
     for (int i = 0; i < MAXUSERS; i++) {
         if (userdata[i].clientSocket == socketID) {
             clearUserRow(i);
-            incrementSemaphore(); //for ScoreAgent to be executed
+            incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
         }
     }
 }
@@ -208,7 +208,7 @@ void removeUserOverSocketID(int socketID) {
 //loescht ein User anhand des index/clientID
 void removeUserOverID(int id) {
     clearUserRow(id);
-    incrementSemaphore(); //for ScoreAgent to be executed
+    incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
 }
 
 
@@ -217,17 +217,6 @@ void updateRanking() {
     pthread_mutex_lock(&mutexUserData);
     //update Playerliste erstellen, ggf. Rangliste neu berechnen
     pthread_mutex_unlock(&mutexUserData);
-}
-
-//TODO Fuer Aufgabe 4 aktuell nur aktuellen Spielteilnehmer versenden, Rangliste wird noch nicht erstellt
-void updateRankingSendPlayerList() {
-
-    updateRanking();
-    //TODO versenden der Playerliste
-    //LST - Nachricht senden
-    //rfc-functionen verwenden
-
-
 }
 
 //0 => ja

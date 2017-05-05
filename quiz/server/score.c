@@ -32,7 +32,7 @@ int initSemaphore() {
 }
 
 //increments (unlocks) Semaphore
-int incrementSemaphore() {
+int incrementScoreAgentSemaphore() {
     return sem_post(&trigger);
 }
 
