@@ -21,6 +21,8 @@
 #define RFC_PLAYER_COUNT_MAXIMUM 4
 #define RFC_ERROR_WARNING_MAX_LENGTH 400
 
+void initRFC();
+
 //------------------------------------------------------------------------------
 // Type definition and parsing (for switching)
 //------------------------------------------------------------------------------
@@ -73,7 +75,7 @@ typedef struct {
 
 typedef struct {
     char name[RFC_PLAYER_NAME_LENGTH];
-    unsigned int score;
+    uint32_t score;
     uint8_t id;
 } PLAYER;
 

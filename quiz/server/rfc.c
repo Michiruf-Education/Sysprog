@@ -58,13 +58,11 @@ static void fixRFCBody(MESSAGE *message, int direction) {
             break;
         case TYPE_PLAYER_LIST:
             if (direction == DIRECTION_RECEIVE) {
-                errorPrint("SIZE OF PLAYER: %zu (should be 37!!!!! remove other error prints too!)", sizeof(PLAYER));
                 int playerCount = message->header.length / sizeof(PLAYER);
                 for (int i = 0; i < playerCount; i++) {
                     message->body.playerList.players[i].score = ntohl(message->body.playerList.players[i].score);
                 }
             } else {
-                errorPrint("SIZE OF PLAYER: %zu (should be 37!!!!! remove other error prints too!)", sizeof(PLAYER));
                 int playerCount = message->header.length / sizeof(PLAYER);
                 for (int i = 0; i < playerCount; i++) {
                     message->body.playerList.players[i].score = htonl(message->body.playerList.players[i].score);
@@ -99,25 +97,28 @@ static void fixRFCBody(MESSAGE *message, int direction) {
 ssize_t receiveMessage(int socketId, MESSAGE *message) {
     ssize_t headerSize = recv(socketId, &message->header, sizeof(message->header), MSG_WAITALL);
     if (headerSize == sizeof(message->header)) {
-        debugPrint("====== GOT MESSAGE ======");
-        debugPrint("Header size: \t\t%zu", headerSize);
         fixRFCHeader(message, DIRECTION_RECEIVE);
         uint16_t bodyLength = message->header.length;
+        debugPrint("====== GOT MESSAGE ======");
+        debugPrint("Type:\t\t%d", message->header.type);
+        debugPrint("Header size: \t\t%zu", headerSize);
         debugPrint("Header's body length: \t%lu", (unsigned long) bodyLength);
         ssize_t bodySize = recv(socketId, &message->body, bodyLength, MSG_WAITALL);
+        debugPrint("Read body length: \t%zu", bodySize);
         if (bodySize == bodyLength) {
-            debugPrint("Read body length: \t%zu", bodySize);
             fixRFCBody(message, DIRECTION_RECEIVE);
+            debugPrint("//////// SUCCESS ////////");
             return headerSize + bodySize;
         }
     }
+
+    debugPrint("\\\\\\\\\\\\\\\\ FAILURE \\\\\\\\\\\\\\\\");
     return -1;
 }
 
 int validateMessage(MESSAGE *message) {
     switch (message->header.type) {
         case TYPE_LOGIN_REQUEST:
-            errorPrint("Got name:\t%s", message->body.loginRequest.name);
             if (message->body.loginRequest.rfcVersion != RFC_VERSION) {
                 errorPrint("RFC version of login request is wrong. Expected %d, got %d.", RFC_VERSION,
                            message->body.loginRequest.rfcVersion);
@@ -163,14 +164,30 @@ int validateMessage(MESSAGE *message) {
 ssize_t sendMessage(int socketId, MESSAGE *message) {
     // Get that header length before reversing byte orders
     uint16_t headerLength = message->header.length;
+    size_t completeLength = sizeof(HEADER) + headerLength;
 
-    fixRFCHeader(message, DIRECTION_SEND);
+    debugPrint("==== SENDING MESSAGE ====");
+    debugPrint("Type:\t\t\t%d", message->header.type);
+    debugPrint("Header's body length: \t%lu", (unsigned long) headerLength);
+    debugPrint("Complete length: \t%zu", completeLength);
+
+    // Reverse byte order (do body first because we can then access the header)
     fixRFCBody(message, DIRECTION_SEND);
+    fixRFCHeader(message, DIRECTION_SEND);
 
-    ssize_t sendSize = send(socketId, message, headerLength, 0);
-    if (sendSize == headerLength) {
+    ssize_t sendSize = send(socketId, message, completeLength, 0);
+    debugPrint("Sent length: \t\t%zu", sendSize);
+
+    // Undo reverse of byte order (important for sending message more than once!)
+    fixRFCHeader(message, DIRECTION_RECEIVE);
+    fixRFCBody(message, DIRECTION_RECEIVE);
+
+    if (sendSize == completeLength) {
+        debugPrint("//////// SUCCESS ////////");
         return sendSize;
     }
+
+    debugPrint("\\\\\\\\\\\\\\\\ FAILURE \\\\\\\\\\\\\\\\");
     return -1;
 }
 
@@ -201,10 +218,13 @@ MESSAGE buildCatalogChange(char catalogFileName[]) {
 }
 
 MESSAGE buildPlayerList(PLAYER players[], int playerCount) {
+    if (sizeof(PLAYER) != 37) {
+        errorPrint("Size of PLAYER struct is not 37 anymore!");
+    }
+
     MESSAGE msg;
     msg.header.type = TYPE_PLAYER_LIST;
     msg.header.length = (uint16_t) (playerCount * sizeof(PLAYER));
-    errorPrint("SIZE OF PLAYER: %zu (should be 37!!!!! remove other error prints too!)", sizeof(PLAYER));
     memcpy(msg.body.playerList.players, players, sizeof(PLAYER) * playerCount);
     return msg;
 }

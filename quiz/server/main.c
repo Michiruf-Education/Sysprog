@@ -19,6 +19,7 @@
 #include <libgen.h>
 #include "../common/util.h"
 #include "login.h"
+#include "score.h"
 
 typedef struct configuration {
     char *catalog_path;
@@ -75,8 +76,8 @@ int main(int argc, char **argv) {
     //signal(SIGINT, ShutDownServer);
     //createIPCs();
 
-    //Debug-Arthur
     startLoginThread(&config.port);
+    startScoreAgentThread();
 
     while (1) {
 
