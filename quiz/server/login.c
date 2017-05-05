@@ -119,7 +119,7 @@ int startLoginListener(int *port) {
                     if (addUser(username, client_sock) >= 0) {
                         //Message send
                         int clientID = getClientIDforUser(client_sock);
-                        infoPrint("Client-ID: %d",clientID);
+                        //infoPrint("Client-ID: %d",clientID);
                         MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,
                                                                    (__uint8_t) clientID);
 
