@@ -25,6 +25,7 @@
 #include "user.h"
 #include "../common/util.h"
 #include <pthread.h>
+#include <stdlib.h>
 #include "rfc.h"
 #include "clientthread.h"
 #include "threadholder.h"
@@ -81,7 +82,7 @@ int startLoginListener(int *port) {
     //Socket bind to local IP and port
     if (bind(listen_sock, (const struct sockaddr *) &addr, sizeof(addr)) < 0) {
         errorPrint("Could not bind socket to address");
-        _exit(1);
+        exit(1);
         //return -1;
     }
 
