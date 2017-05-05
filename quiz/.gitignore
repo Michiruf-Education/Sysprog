@@ -4,6 +4,7 @@
 *.swp
 *.bak
 *~
+server.lock
 .cproject
 .project
 .settings

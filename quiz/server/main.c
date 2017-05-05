@@ -17,9 +17,13 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <stdio.h>
+#include <sys/signal.h>
 #include "../common/util.h"
 #include "login.h"
 #include "score.h"
+
+#define LOCK_FILE "server.lock"
 
 typedef struct configuration {
     char *catalog_path;
@@ -32,6 +36,14 @@ static CONFIGURATION initConfiguration();
 static bool parseArguments(int argc, char **argv, CONFIGURATION *config);
 
 static void printUsage();
+
+static void shutdownServer();
+
+static int checkLockFileExists();
+
+static void createLockFile();
+
+static void removeLockFile();
 
 int main(int argc, char **argv) {
     // TODO Remove program args fake
@@ -51,20 +63,32 @@ int main(int argc, char **argv) {
 
     setProgName(basename(argv[0]));
 
-    // Initialize configuration to work with
-    CONFIGURATION config = initConfiguration();
-
-    // Parse arguments to modify configuration
-    if (!parseArguments(argc, argv, &config)) {
-        printUsage();
-        exit(1);
-    }
+    // Show console logging immediately
+    setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Change the working directory to the one the executable is located in
     if (chdir(dirname(argv[0])) < 0) {
         errnoPrint("Unable to change the working directory to the executable directory!");
     }
 
+    // Lock file handling
+    if (checkLockFileExists() >= 0) {
+        errorPrint("Lock file exists (%s)! Cannot start more than one server at once! Exiting...", LOCK_FILE);
+        exit(1);
+    }
+    createLockFile();
+
+    // Set shutdown hooks
+    signal(SIGABRT, shutdownServer);
+    signal(SIGINT, shutdownServer);
+    signal(SIGTERM, shutdownServer);
+
+    // Initialize and parse arguments for configuration
+    CONFIGURATION config = initConfiguration();
+    if (!parseArguments(argc, argv, &config)) {
+        printUsage();
+        exit(1);
+    }
     debugPrint("Configuration:");
     debugPrint("    Catalog-path:\t%s", config.catalog_path);
     debugPrint("    Loader-path:\t%s", config.loader_path);
@@ -140,4 +164,32 @@ static void printUsage() {
     errorPrint("CURRENTLY ONLY WORKS WITH DEBUG ENABLED! SEE README.txt!"); // TODO Remove later
     errorPrint("        -m        Disable colors in debug output");
     exit(1);
+}
+
+static void shutdownServer() {
+    // TODO cancelAllServerThreads();
+    removeLockFile();
+    exit(0);
+}
+
+static int checkLockFileExists() {
+    return access(LOCK_FILE, F_OK);
+}
+
+static void createLockFile() {
+    FILE *lockFile = fopen(LOCK_FILE, "w+");
+    infoPrint("Creating lock file: %s", LOCK_FILE);
+    if (lockFile == NULL) {
+        errorPrint("Could not create log file! Exiting...");
+        exit(1);
+    }
+    fclose(lockFile);
+}
+
+static void removeLockFile() {
+    int removal = unlink(LOCK_FILE);
+    infoPrint("Removing lock file: %s", LOCK_FILE);
+    if (removal < 0) {
+        errorPrint("ERROR removing lock file (%s)", LOCK_FILE);
+    }
 }
