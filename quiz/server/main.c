@@ -48,19 +48,19 @@ static void createLockFile();
 static void removeLockFile();
 
 int main(int argc, char **argv) {
-    // TODO Remove program args fake
-    char *args[8];
-    args[0] = "server";
-    args[1] = "-c";
-    args[2] = "/media/sf_quiz/catalogs/";
-    args[3] = "-l";
-    args[4] = "/media/sf_quiz/bin/loader";
-    args[5] = "-p";
-    args[6] = argv[2];
-    args[7] = "-d";
-    argv = args;
-    argc = 8;
-    // TODO End remove fake args
+//    // TODO Remove program args fake
+//    char *args[8];
+//    args[0] = "server";
+//    args[1] = "-c";
+//    args[2] = "/media/sf_quiz/catalogs/";
+//    args[3] = "-l";
+//    args[4] = "/media/sf_quiz/bin/loader";
+//    args[5] = "-p";
+//    args[6] = argv[2];
+//    args[7] = "-d";
+//    argv = args;
+//    argc = 8;
+//    // TODO End remove fake args
 
 
     setProgName(basename(argv[0]));
@@ -89,6 +89,7 @@ int main(int argc, char **argv) {
     CONFIGURATION config = initConfiguration();
     if (!parseArguments(argc, argv, &config)) {
         printUsage();
+        removeLockFile();
         infoPrint("Exiting...");
         exit(1);
     }
@@ -163,7 +164,7 @@ static void printUsage() {
 }
 
 static void shutdownServer() {
-    infoPrint(""); // Newline
+    infoPrint(" "); // Newline
     cancelAllServerThreads();
     removeLockFile();
     infoPrint("(Shutdown server) Exiting...");
