@@ -22,6 +22,7 @@
 #include "clientthread.h"
 #include "rfc.h"
 #include "user.h"
+#include "score.h"
 
 //------------------------------------------------------------------------------
 // Fields and method pre-declaration
@@ -197,8 +198,7 @@ static void handleStartGame(MESSAGE message, int userId) {
         }
     }
 
-    // TODO tell score agent to send initial points -> semaphore!
-
+    incrementScoreAgentSemaphore();
 }
 
 static void handleQuestionRequest(MESSAGE message, int userId) {
