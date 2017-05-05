@@ -76,6 +76,8 @@ int main(int argc, char **argv) {
     //signal(SIGINT, ShutDownServer);
     //createIPCs();
 
+    // TODO LOCK FILE!!!
+
     startLoginThread(&config.port);
     startScoreAgentThread();
 

@@ -15,6 +15,6 @@ enum {
     GAME_STATE_FINISHED = 3
 };
 
-int initializeClientThread(int userId);
+int startClientThread(int userId);
 
 #endif

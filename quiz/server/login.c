@@ -26,6 +26,7 @@
 #include "../common/util.h"
 #include <pthread.h>
 #include "rfc.h"
+#include "clientthread.h"
 
 pthread_t loginThreadID = 0;
 
@@ -123,9 +124,8 @@ int startLoginListener(int *port) {
                                                                    (__uint8_t) clientID);
 
                         if (sendMessage(client_sock, &sendmessage) >= 0) {
-                            //TODO createClient-Thread
-                            //startClientThread(id);
-                            //printUSERDATA();
+                            printUSERDATA();
+                            startClientThread(clientID);
                         } else {
                             errorPrint("Error: Message send failure");
                             //TODO sendFatalErrorMessage();
