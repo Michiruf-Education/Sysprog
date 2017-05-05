@@ -14,15 +14,17 @@
 
 int getCatalogCount() {
     // TODO Remove fake of data
-    return 2;
+    return 3;
 }
 
 char *getCatalogNameByIndex(int index) {
     // TODO Remove fake of data
     if (index == 0) {
         return "simple.cat";
-    } else {
+    } else if (index == 1) {
         return "systemprogrammierung.cat";
+    } else {
+        return "\0";
     }
 }
 

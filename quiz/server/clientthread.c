@@ -33,9 +33,9 @@ int currentGameState;
 
 pthread_t clientThreadId = 0;
 
-void clientThread(int userId);
+void clientThread(int *userIdPrt);
 
-static void cleanupClientThread(int userId);
+static void cleanupClientThread(int *userIdPtr);
 
 static int isMessageTypeAllowedInCurrentGameState(int gameState, int messageType);
 
@@ -57,8 +57,6 @@ static void handleQuestionAnswered(MESSAGE message, int userId);
 // Implementations
 //------------------------------------------------------------------------------
 int startClientThread(int userId) {
-    return -1; // TODO currently disabled (segmentation fault)!!!!!
-
     int err = pthread_create(&clientThreadId, NULL, (void *) &clientThread, &userId);
     if (err == 0) {
         infoPrint("Client thread created successfully.");
@@ -68,8 +66,10 @@ int startClientThread(int userId) {
     return err;
 }
 
-void clientThread(int userId) {
-    pthread_cleanup_push((void *) &cleanupClientThread, &userId);
+void clientThread(int *userIdPrt) {
+    pthread_cleanup_push((void *) &cleanupClientThread, userIdPrt);
+        int userId = *userIdPrt;
+
         if (isGameLeader(userId)) {
             currentGameState = GAME_STATE_PREPARATION;
         }
@@ -116,13 +116,15 @@ void clientThread(int userId) {
             } else if (messageSize == 0) {
                 handleConnectionTimeout(userId);
             } else {
-                errorPrint("Error receiving message!");
+                errorPrint("Error receiving message (message size: %zu)!", messageSize);
             }
         }
     pthread_cleanup_pop(0);
 }
 
-static void cleanupClientThread(int userId) {
+static void cleanupClientThread(int *userIdPtr) {
+    int userId = *userIdPtr;
+
     removeUserOverID(userId);
 
     // Just to be safe call the close of the socket (if it is not closed yet)
@@ -150,7 +152,7 @@ static void handleConnectionTimeout(int userId) {
 
     if (isGameLeader(userId) >= 0 && currentGameState == GAME_STATE_PREPARATION) {
         for (int i = 0; i < getUserAmount(); i++) {
-            MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, "Game leader left the game.");
+            MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, "Game leader has left the game.");
             if (sendMessage(getUserByIndex(i).clientSocket, &errorWarning) < 0) {
                 errorPrint("Unable to send error warning to %s (%d)!",
                            getUserByIndex(i).username,
@@ -180,8 +182,7 @@ static void handleConnectionTimeout(int userId) {
 }
 
 static void handleCatalogRequest(int userId) {
-    errorPrint("GOT CATALOG REQUEST!"); // TODO remove
-    for (int i = 0; i < getCatalogCount(); i++) { // TODO shell contain the empty catalog!
+    for (int i = 0; i < getCatalogCount(); i++) {
         MESSAGE catalogResponse = buildCatalogResponse(getCatalogNameByIndex(i));
         if (sendMessage(getUser(userId).clientSocket, &catalogResponse) < 0) {
             errorPrint("Unable to send catalog response to %s (%d)!",

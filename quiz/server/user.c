@@ -185,6 +185,11 @@ USER getUserByIndex(int index) {
     // separate the index and the id in the future.
     // Doing so we could handle the disconnect of the leader (id: 0) to still get the first connected
     // user by index.
+    for (int i = 0; i < MAXUSERS; i++) { // TODO
+        if (getUser(i).index == -1) {
+            index++;
+        }
+    }
     return getUser(index);
 }
 

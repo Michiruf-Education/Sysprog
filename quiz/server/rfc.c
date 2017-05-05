@@ -100,9 +100,14 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
         fixRFCHeader(message, DIRECTION_RECEIVE);
         uint16_t bodyLength = message->header.length;
         debugPrint("====== GOT MESSAGE ======");
-        debugPrint("Type:\t\t%d", message->header.type);
+        debugPrint("Type:\t\t\t%d", message->header.type);
         debugPrint("Header size: \t\t%zu", headerSize);
         debugPrint("Header's body length: \t%lu", (unsigned long) bodyLength);
+        if (bodyLength == 0) {
+            debugPrint("(Non-)read body length: %d", 0);
+            debugPrint("//////// SUCCESS ////////");
+            return headerSize;
+        }
         ssize_t bodySize = recv(socketId, &message->body, bodyLength, MSG_WAITALL);
         debugPrint("Read body length: \t%zu", bodySize);
         if (bodySize == bodyLength) {
@@ -113,7 +118,7 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
     }
 
     debugPrint("\\\\\\\\\\\\\\\\ FAILURE \\\\\\\\\\\\\\\\");
-    return -1;
+    return headerSize;
 }
 
 int validateMessage(MESSAGE *message) {
