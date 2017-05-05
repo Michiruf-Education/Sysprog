@@ -143,12 +143,11 @@ int startLoginListener(int *port) {
 
         } else {
 
-            /*
             MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL,
                                                      "Game running or maximum user amount reached, please try again later...");
             if (sendMessage(client_sock, &errorWarning) < 0) {
                 errorPrint("Unable to send error warning to!");
-            }*/
+            }
             errorPrint("Error: Game running or maximum user amount reached, please try again later...");
         }
     }

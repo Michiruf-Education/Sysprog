@@ -42,7 +42,6 @@ int loadCatalog(char catalogFile[]) {
 //CreateCatalogChildProcess
 void createCatalogChildProcess(char *catalog_path, char *loader_path) {
 
-
     pid_t pid; //Process-ID
 
     if ((pid = fork()) == (pid_t) -1) {
