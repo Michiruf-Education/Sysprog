@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
 
     // Start the application
     startLoginThread(&config.port);
-    startScoreAgentThread();
+    startAwaitScoreAgentThread();
 
 
     infoPrint("Exiting regular (main done)...");
