@@ -12,58 +12,82 @@
 #include <stddef.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <memory.h>
 #include "../common/server_loader_protocol.h"
-#include "catalog.h"
 #include "../common/util.h"
+#include "catalog.h"
+
+int pipeId[2];
+
+int catalogCount = 0;
+CATALOG catalogs[CATALOGS_MAX_COUNT];
+
+static void fetchBrowseCatalogs();
 
 int getCatalogCount() {
-    // TODO Remove fake of data
-    return 3;
+    return catalogCount;
 }
 
 char *getCatalogNameByIndex(int index) {
-    // TODO Remove fake of data
-    if (index == 0) {
-        return "simple.cat";
-    } else if (index == 1) {
-        return "systemprogrammierung.cat";
-    } else {
-        return "\0";
+    return catalogs[index].name;
+}
+
+void createCatalogChildProcess(char *catalogPath, char *loaderPath) {
+    pipe(pipeId);
+
+    pid_t pid;
+    if ((pid = fork()) == (pid_t) -1) {
+        errorPrint("Fork-Error: Could not create catalog child-process");
+    } else if (pid == 0) { // Child-process
+        if (dup2(pipeId[0], STDIN_FILENO) == -1) {
+            errorPrint("Cannot redirect stdin onto pipe!");
+        }
+        if (dup2(pipeId[1], STDOUT_FILENO) == -1) {
+            errorPrint("Cannot redirect stdout onto pipe!");
+        }
+
+        int handle = execl(loaderPath, loaderPath, catalogPath, "-d", NULL);
+//        if (handle < 0) {
+//            errorPrint("Error executing loader:");
+//            errorPrint("\tPath:\t\t%s", loaderPath);
+//            errorPrint("\tCatalog path:\t%s", catalogPath);
+//            return;
+//        }
+
+        fetchBrowseCatalogs();
+
+        close(pipeId[0]);
+        close(pipeId[1]);
+    } else { // Parent-process
+    }
+}
+
+static void fetchBrowseCatalogs() {
+    char *readBuffer;
+    int i = 0;
+    errorPrint("JAAAAAAAAAAAAAAAAAAAAA");
+
+    // Send browse command
+    close(pipeId[0]);
+    if (write(pipeId[1], CMD_BROWSE, sizeof(CMD_BROWSE)) < sizeof(CMD_BROWSE)) {
+        errorPrint("Error writing to pipe.");
+    };
+    if (write(pipeId[1], CMD_SEND, sizeof(CMD_SEND)) < sizeof(CMD_SEND)) {
+        errorPrint("Error writing to pipe.");
+    };
+
+    close(pipeId[1]);
+    for (i = 0; (readBuffer = readLine(pipeId[0])) != NULL; i++) {
+        debugPrint("%s", readBuffer);
+        if (strstr(readBuffer, CATALOG_FILE_EXTENSION) != NULL) {
+            memcpy(catalogs[i].name, readBuffer, strlen(readBuffer));
+            catalogCount++;
+        }
     }
 }
 
 int loadCatalog(char catalogFile[]) {
-    // TODO
-    return 0;
-}
-
-
-
-//CreateCatalogChildProcess
-void createCatalogChildProcess(char *catalog_path, char *loader_path) {
-
-
-    pid_t pid; //Process-ID
-
-    if ((pid = fork()) == (pid_t) -1) {
-        errorPrint("Fork-Error: Could not create catalog child-process");
-
-    } else if (pid == 0) { //We are in Child-process
-        //excel loader << BROWSE result in catalog-Array
-        //excel();
-        infoPrint("here we are %s\n",catalog_path);
-        infoPrint("here we are %s\n",loader_path);
-
-        int pipe_fds[2];
-        int read_fd;
-        int write_fd;
-
-        pipe (pipe_fds);
-        read_fd = pipe_fds[0];
-        write_fd = pipe_fds[1];
-
-
-    } else { //We are in Parent-process
-
-    }
+    // TODO Later
+    errorPrint("loadCatalog() not yet implemented.");
+    return -1;
 }
