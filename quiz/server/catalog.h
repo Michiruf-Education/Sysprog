@@ -6,10 +6,13 @@
  *
  * catalog.h: Header für die Katalogbehandlung und Loader-Steuerung
  */
-
 #ifndef CATALOG_H
 #define CATALOG_H
 
-/* ... */
+int getCatalogCount();
+
+char *getCatalogNameByIndex(int index);
+
+int loadCatalog(char catalogFile[]);
 
 #endif
