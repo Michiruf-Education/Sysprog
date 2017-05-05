@@ -189,6 +189,9 @@ USER getUserByIndex(int index) {
         if (getUser(i).index == -1) {
             index++;
         }
+        if(i >= index) {
+            break;
+        }
     }
     return getUser(index);
 }
