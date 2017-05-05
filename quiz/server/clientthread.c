@@ -39,8 +39,6 @@ char *selectedCatalogName = NULL;
 
 void clientThread(int *userIdPrt);
 
-static void cleanupClientThread(int *userIdPtr);
-
 static int isMessageTypeAllowedInCurrentGameState(int gameState, int messageType);
 
 static int isUserAuthorizedForMessageType(int messageType, int userId);
@@ -71,79 +69,66 @@ int startClientThread(int userId) {
     return err;
 }
 
-void clientThread(int *userIdPrt) {
-    pthread_cleanup_push((void *) &cleanupClientThread, userIdPrt);
-        int userId = *userIdPrt;
-
-        if (isGameLeader(userId) >= 0) {
-            currentGameState = GAME_STATE_PREPARATION;
-        }
-
-        while (1) {
-            MESSAGE message;
-            ssize_t messageSize = receiveMessage(getUser(userId).clientSocket, &message);
-            if (messageSize > 0) {
-                if (validateMessage(&message) >= 0) {
-                    if (isMessageTypeAllowedInCurrentGameState(currentGameState, message.header.type) < 0) {
-                        errorPrint("User %d not allowed to send RFC type %d in current game state: %d!", userId,
-                                   message.header.type, currentGameState);
-                        return;
-                    }
-
-                    if (isUserAuthorizedForMessageType(userId, message.header.type) < 0) {
-                        errorPrint("User %d not allowed to send RFC type %d!", userId, message.header.type);
-                        return;
-                    }
-
-                    switch (message.header.type) {
-                        case TYPE_CATALOG_REQUEST:
-                            handleCatalogRequest(userId);
-                            break;
-                        case TYPE_CATALOG_CHANGE:
-                            handleCatalogChange(message);
-                            break;
-                        case TYPE_START_GAME:
-                            handleStartGame(message, userId);
-                            break;
-                        case TYPE_QUESTION_REQUEST:
-                            handleQuestionRequest(message, userId);
-                            break;
-                        case TYPE_QUESTION_ANSWERED:
-                            handleQuestionAnswered(message, userId);
-                            break;
-                        default:
-                            // Do nothing
-                            break;
-                    }
-                } else {
-                    errorPrint("Invalid RFC message!");
-                }
-            } else if (messageSize == 0) {
-                handleConnectionTimeout(userId);
-            } else {
-                errorPrint("Error receiving message (message size: %zu)!", messageSize);
-            }
-        }
-    pthread_cleanup_pop(0);
-}
-
-static void cleanupClientThread(int *userIdPtr) {
+void clientThread(int *userIdPtr) {
     int userId = *userIdPtr;
 
-    removeUserOverID(userId);
+    if (isGameLeader(userId) >= 0) {
+        currentGameState = GAME_STATE_PREPARATION;
+    }
 
-    // Just to be safe call the close of the socket (if it is not closed yet)
-    close(getUser(userId).clientSocket);
-    infoPrint("Closed socket for user %d.", userId);
+    while (1) {
+        MESSAGE message;
+        ssize_t messageSize = receiveMessage(getUser(userId).clientSocket, &message);
+        if (messageSize > 0 && currentGameState != GAME_STATE_ABORTED) {
+            if (validateMessage(&message) >= 0) {
+                if (isMessageTypeAllowedInCurrentGameState(currentGameState, message.header.type) < 0) {
+                    errorPrint("User %d not allowed to send RFC type %d in current game state: %d!", userId,
+                               message.header.type, currentGameState);
+                    return;
+                }
 
-    infoPrint("Finished thread cleanup for user %d.", userId);
-    // TODO more stuff in here for next assigments
+                if (isUserAuthorizedForMessageType(userId, message.header.type) < 0) {
+                    errorPrint("User %d not allowed to send RFC type %d!", userId, message.header.type);
+                    return;
+                }
+
+                switch (message.header.type) {
+                    case TYPE_CATALOG_REQUEST:
+                        handleCatalogRequest(userId);
+                        break;
+                    case TYPE_CATALOG_CHANGE:
+                        handleCatalogChange(message);
+                        break;
+                    case TYPE_START_GAME:
+                        handleStartGame(message, userId);
+                        break;
+                    case TYPE_QUESTION_REQUEST:
+                        handleQuestionRequest(message, userId);
+                        break;
+                    case TYPE_QUESTION_ANSWERED:
+                        handleQuestionAnswered(message, userId);
+                        break;
+                    default:
+                        // Do nothing
+                        break;
+                }
+            } else {
+                errorPrint("Invalid RFC message!");
+            }
+        } else if (messageSize == 0 || currentGameState == GAME_STATE_ABORTED) {
+            handleConnectionTimeout(userId);
+            return; // Safe call to terminate loop
+        } else {
+            errorPrint("Error receiving message (message size: %zu)!", messageSize);
+        }
+    }
 }
 
 static int isMessageTypeAllowedInCurrentGameState(int gameState, int messageType) {
     return (gameState == GAME_STATE_PREPARATION && !(messageType > 0 && messageType <= 7)) ||
            (gameState == GAME_STATE_GAME_RUNNING && !(messageType > 7 && messageType <= 12)) ||
-           (gameState == GAME_STATE_FINISHED)
+           (gameState == GAME_STATE_FINISHED) ||
+           (gameState == GAME_STATE_ABORTED)
            ? -1 : 1;
 }
 
@@ -153,10 +138,13 @@ static int isUserAuthorizedForMessageType(int messageType, int userId) {
 }
 
 static void handleConnectionTimeout(int userId) {
-    errorPrint("Player %d has left the game", userId);
+    errorPrint("Player %d has left the game!", userId);
 
     if (isGameLeader(userId) >= 0 && currentGameState == GAME_STATE_PREPARATION) {
         for (int i = 0; i < getUserAmount(); i++) {
+            if (getUserByIndex(i).index == userId) {
+                continue;
+            }
             MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, "Game leader has left the game.");
             if (sendMessage(getUserByIndex(i).clientSocket, &errorWarning) < 0) {
                 errorPrint("Unable to send error warning to %s (%d)!",
@@ -164,8 +152,12 @@ static void handleConnectionTimeout(int userId) {
                            getUserByIndex(i).index);
             }
         }
+        currentGameState = GAME_STATE_ABORTED;
     } else if (getUserAmount() < 2 && currentGameState == GAME_STATE_GAME_RUNNING) {
         for (int i = 0; i < getUserAmount(); i++) {
+            if (getUserByIndex(i).index == userId) {
+                continue;
+            }
             MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL,
                                                      "Game cancelled because there are less than 2 players left.");
             if (sendMessage(getUserByIndex(i).clientSocket, &errorWarning) < 0) {
@@ -174,9 +166,17 @@ static void handleConnectionTimeout(int userId) {
                            getUserByIndex(i).index);
             }
         }
+        currentGameState = GAME_STATE_ABORTED;
     }
 
-    errorPrint("Connection timeout by %d", userId);
+    infoPrint("Removing user data for user %d...", userId);
+    removeUserOverID(userId);
+
+    // Just to be safe call the close of the socket (if it is not closed yet)
+    infoPrint("Closing socket for user %d...", userId);
+    close(getUser(userId).clientSocket);
+
+    infoPrint("Exiting client thread for user %d...", userId);
     pthread_exit(0);
 }
 

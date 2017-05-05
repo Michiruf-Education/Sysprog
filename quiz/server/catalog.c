@@ -11,6 +11,7 @@
  */
 #include <stddef.h>
 #include <unistd.h>
+#include <stdio.h>
 #include "../common/server_loader_protocol.h"
 #include "catalog.h"
 #include "../common/util.h"
@@ -33,10 +34,14 @@ char *getCatalogNameByIndex(int index) {
 
 int loadCatalog(char catalogFile[]) {
     // TODO
+    return 0;
 }
+
+
 
 //CreateCatalogChildProcess
 void createCatalogChildProcess(char *catalog_path, char *loader_path) {
+
 
     pid_t pid; //Process-ID
 
@@ -45,11 +50,20 @@ void createCatalogChildProcess(char *catalog_path, char *loader_path) {
 
     } else if (pid == 0) { //We are in Child-process
         //excel loader << BROWSE result in catalog-Array
+        //excel();
+        infoPrint("here we are %s\n",catalog_path);
+        infoPrint("here we are %s\n",loader_path);
+
+        int pipe_fds[2];
+        int read_fd;
+        int write_fd;
+
+        pipe (pipe_fds);
+        read_fd = pipe_fds[0];
+        write_fd = pipe_fds[1];
 
 
     } else { //We are in Parent-process
 
     }
-
-
 }

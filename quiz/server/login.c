@@ -25,8 +25,10 @@
 #include "user.h"
 #include "../common/util.h"
 #include <pthread.h>
+#include <stdlib.h>
 #include "rfc.h"
 #include "clientthread.h"
+#include "threadholder.h"
 
 pthread_t loginThreadID = 0;
 
@@ -37,6 +39,7 @@ int startLoginThread(int *port) {
     err = pthread_create(&loginThreadID, NULL, (void *) &startLoginListener, (void *) port);
     if (err == 0) {
         infoPrint("Login thread created successfully");
+        registerThread(loginThreadID);
     } else {
         errorPrint("Can't create Login thread");
     }
@@ -79,7 +82,7 @@ int startLoginListener(int *port) {
     //Socket bind to local IP and port
     if (bind(listen_sock, (const struct sockaddr *) &addr, sizeof(addr)) < 0) {
         errorPrint("Could not bind socket to address");
-        _exit(1);
+        exit(1);
         //return -1;
     }
 
@@ -139,6 +142,13 @@ int startLoginListener(int *port) {
 
 
         } else {
+
+            /*
+            MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL,
+                                                     "Game running or maximum user amount reached, please try again later...");
+            if (sendMessage(client_sock, &errorWarning) < 0) {
+                errorPrint("Unable to send error warning to!");
+            }*/
             errorPrint("Error: Game running or maximum user amount reached, please try again later...");
         }
     }
