@@ -39,7 +39,7 @@ int incrementScoreAgentSemaphore() {
 }
 
 //Main - start function for the ScoreAgentThread
-int startScoreAgentThread() {
+int startAwaitScoreAgentThread() {
 
     if (initSemaphore() >= 0) {
         int err;

@@ -165,12 +165,24 @@ int addUser(char *username, int socketID) {
             }
         } else {
             errorPrint("Error: Maximum numbers of User reached, adding Username: %s not possible!", username);
+
+            MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL,
+                                                     "Maximum numbers of User reached, adding Username not possible!");
+            if (sendMessage(socketID, &errorWarning) < 0) {
+                errorPrint("Unable to send error warning to");
+            }
             pthread_mutex_unlock(&mutexUserData);
             return -1;
         }
 
     } else {
         errorPrint("Error: User with Username: %s already exist!", username);
+
+        MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, "User with Username already exist!");
+        if (sendMessage(socketID, &errorWarning) < 0) {
+            errorPrint("Unable to send error warning to");
+        }
+
         pthread_mutex_unlock(&mutexUserData);
         return -1;
     }
@@ -189,7 +201,7 @@ USER getUserByIndex(int index) {
         if (getUser(i).index == -1) {
             index++;
         }
-        if(i >= index) {
+        if (i >= index) {
             break;
         }
     }

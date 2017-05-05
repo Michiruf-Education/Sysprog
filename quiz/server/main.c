@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     createCatalogChildProcess(config.catalogPath, config.loaderPath);
     fetchBrowseCatalogs();
     startLoginThread(&config.port);
-    startScoreAgentThread();
+    startAwaitScoreAgentThread();
 
 
     infoPrint("Exiting regular (main done)...");
