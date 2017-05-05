@@ -17,6 +17,7 @@
  * die Funktionen aus dem Modul catalog verwendet werden.
  */
 #include <pthread.h>
+#include <sys/types.h>
 #include "../common/util.h"
 #include "clientthread.h"
 #include "rfc.h"
@@ -31,19 +32,19 @@ pthread_t clientThreadId = 0;
 
 void clientThread(int userId);
 
-void cleanupClientThread(int userId);
+static void cleanupClientThread(int userId);
 
-void handleConnectionTimeout(int userId);
+static void handleConnectionTimeout(int userId);
 
-void handleCatalogRequest(int userId);
+static void handleCatalogRequest(int userId);
 
-void handleCatalogChange(MESSAGE message);
+static void handleCatalogChange(MESSAGE message);
 
-void handleStartGame(MESSAGE message, int userId);
+static void handleStartGame(MESSAGE message, int userId);
 
-void handleQuestionRequest(MESSAGE message, int userId);
+static void handleQuestionRequest(MESSAGE message, int userId);
 
-void handleQuestionAnswered(MESSAGE message, int userId);
+static void handleQuestionAnswered(MESSAGE message, int userId);
 
 //------------------------------------------------------------------------------
 // Implementations
@@ -70,16 +71,18 @@ void clientThread(int userId) {
         ssize_t messageSize = receiveMessage(getUser(userId).clientSocket, &message) >= 0 && validateMessage(&message);
         if (messageSize > 0) {
             if (validateMessage(&message) >= 0) {
-                if (isMessageTypeAllowedInCurrentGameState(message.header.type, userId) < 0) {
-                    errorPrint("User %d not allowed to send RFC type %d in current game state!", userId,
-                               message.header.type);
-                    return;
-                }
+                // TODO
+//                if (isMessageTypeAllowedInCurrentGameState(message.header.type, userId) < 0) {
+//                    errorPrint("User %d not allowed to send RFC type %d in current game state!", userId,
+//                               message.header.type);
+//                    return;
+//                }
 
-                if (isUserAuthorizedForMessageType(userId, userId, message.header.type) < 0) {
-                    errorPrint("User %d not allowed to send RFC type %d!", userId, message.header.type);
-                    return;
-                }
+                // TODO
+//                if (isUserAuthorizedForMessageType(userId, userId, message.header.type) < 0) {
+//                    errorPrint("User %d not allowed to send RFC type %d!", userId, message.header.type);
+//                    return;
+//                }
 
                 switch (message.header.type) {
                     case TYPE_CATALOG_REQUEST:
@@ -126,7 +129,7 @@ static void handleConnectionTimeout(int userId) {
                        getUser(userId).username,
                        getUser(userId).index);
         }
-        cancelAllServerThreads(); // TODO need to do a central station to register threads
+//        cancelAllServerThreads(); // TODO need to do a central station to register threads
         return;
     }
 
@@ -138,7 +141,7 @@ static void handleConnectionTimeout(int userId) {
                        getUser(userId).username,
                        getUser(userId).index);
         }
-        cancelAllServerThreads();
+//        cancelAllServerThreads();
         return;
     }
 
@@ -147,14 +150,15 @@ static void handleConnectionTimeout(int userId) {
 }
 
 static void handleCatalogRequest(int userId) {
-    for (int i = 0; i < getCatalogCount(); i++) { // TODO shell contain the empty catalog!
-        MESSAGE catalogResponse = buildCatalogResponse(getCatalog(i).name);
-        if (sendMessage(getUser(userId).clientSocket, &catalogResponse) < 0) {
-            errorPrint("Unable to send catalog response to %s (%d)!",
-                       getUser(userId).username,
-                       getUser(userId).index);
-        }
-    }
+    // TODO
+//    for (int i = 0; i < getCatalogCount(); i++) { // TODO shell contain the empty catalog!
+//        MESSAGE catalogResponse = buildCatalogResponse(getCatalog(i).name);
+//        if (sendMessage(getUser(userId).clientSocket, &catalogResponse) < 0) {
+//            errorPrint("Unable to send catalog response to %s (%d)!",
+//                       getUser(userId).username,
+//                       getUser(userId).index);
+//        }
+//    }
 }
 
 static void handleCatalogChange(MESSAGE message) {
@@ -180,7 +184,8 @@ static void handleStartGame(MESSAGE message, int userId) {
         return;
     }
 
-    loadCatalog(message.body.startGame.catalog);
+    // TODO
+//    loadCatalog(message.body.startGame.catalog);
     currentGameState = GAME_STATE_GAME_RUNNING;
 
     MESSAGE startGameResponse = buildStartGame(message.body.startGame.catalog);
