@@ -164,11 +164,7 @@ static void handleConnectionTimeout(int userId) {
                            getUserByIndex(i).index);
             }
         }
-        cancelAllServerThreads();
-        return;
-    }
-
-    if (getUserAmount() < 2 && currentGameState == GAME_STATE_GAME_RUNNING) {
+    } else if (getUserAmount() < 2 && currentGameState == GAME_STATE_GAME_RUNNING) {
         for (int i = 0; i < getUserAmount(); i++) {
             MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL,
                                                      "Game cancelled because there are less than 2 players left.");
@@ -178,8 +174,6 @@ static void handleConnectionTimeout(int userId) {
                            getUserByIndex(i).index);
             }
         }
-        cancelAllServerThreads();
-        return;
     }
 
     errorPrint("Connection timeout by %d", userId);

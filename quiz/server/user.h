@@ -16,7 +16,7 @@
 //TODO parameter umbennen/anpassen
 
 typedef struct user {
-    int index;
+    int index; // TODO rename to ID
     char username[USERNAMELENGTH]; //sicherstellen das der Username mit \0 Terminiert wird
     unsigned int score;
     int clientSocket; //Socket-Deskriptor
