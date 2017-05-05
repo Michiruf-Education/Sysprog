@@ -73,13 +73,6 @@ int main(int argc, char **argv) {
         errnoPrint("Unable to change the working directory to the executable directory!");
     }
 
-    // Lock file handling
-    if (checkLockFileExists() >= 0) {
-        errorPrint("Lock file exists (%s)! Cannot start more than one server at once! Exiting...", LOCK_FILE);
-        exit(1);
-    }
-    createLockFile();
-
     // Set shutdown hooks
     signal(SIGABRT, shutdownServer);
     signal(SIGINT, shutdownServer);
@@ -89,7 +82,6 @@ int main(int argc, char **argv) {
     CONFIGURATION config = initConfiguration();
     if (!parseArguments(argc, argv, &config)) {
         printUsage();
-        removeLockFile();
         infoPrint("Exiting...");
         exit(1);
     }
@@ -98,6 +90,12 @@ int main(int argc, char **argv) {
     debugPrint("    Loader-path:\t%s", config.loaderPath);
     debugPrint("    Port:\t\t%d", config.port);
 
+    // Lock file handling
+    if (checkLockFileExists() >= 0) {
+        errorPrint("Lock file exists (%s)! Cannot start more than one server at once! Exiting...", LOCK_FILE);
+        exit(1);
+    }
+    createLockFile();
 
     // Start the application
     createCatalogChildProcess(config.catalogPath, config.loaderPath);
