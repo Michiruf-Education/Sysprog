@@ -133,6 +133,10 @@ int validateMessage(MESSAGE *message) {
                 errorPrint("Player name exceeded %d allowed characters.", RFC_PLAYER_NAME_LENGTH);
                 return -2;
             }
+            if (strlen(message->body.loginRequest.name) == 0) {
+                errorPrint("Player name is not set.");
+                return -3;
+            }
             break;
         case TYPE_LOGIN_RESPONSE_OK: // TODO validate from here on
             break;
