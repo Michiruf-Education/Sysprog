@@ -1,0 +1,15 @@
+//
+// Created by ae on 5/4/17.
+//
+
+#ifndef SYSPROG_VARDEFINE_H
+#define SYSPROG_VARDEFINE_H
+
+#define MAXCONNECTIONS 4
+#define MAXDATASIZE 1024
+#define MAXUSERS 4
+#define MINUSERS 4
+#define USERNAMELENGTH 32
+
+#endif //SYSPROG_VARDEFINE_H
+

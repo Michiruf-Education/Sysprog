@@ -10,6 +10,12 @@
 #ifndef SCORE_H
 #define SCORE_H
 
-/* ... */
+int startAwaitScoreAgentThread();
+
+void startScoreAgent();
+
+int initSemaphore();
+
+int incrementScoreAgentSemaphore();
 
 #endif
