@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
     char *args[8];
     args[0] = "server";
     args[1] = "-c";
-    args[2] = "/media/sf_quiz/";
+    args[2] = "/media/sf_quiz/catalogs/";
     args[3] = "-l";
     args[4] = "/media/sf_quiz/bin/loader";
     args[5] = "-p";
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
 
     // Start the application
     createCatalogChildProcess(config.catalogPath, config.loaderPath);
-    errorPrint("CC %d", getCatalogCount());
+    fetchBrowseCatalogs();
     startLoginThread(&config.port);
     startScoreAgentThread();
 

@@ -11,20 +11,17 @@
  */
 #include <stddef.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <memory.h>
 #include <stdlib.h>
-#include <wait.h>
 #include "../common/server_loader_protocol.h"
 #include "../common/util.h"
 #include "catalog.h"
 
-int pipeId[2];
+int pipeInFD[2];
+int pipeOutFD[2];
 
 int catalogCount = 0;
 CATALOG catalogs[CATALOGS_MAX_COUNT];
-
-static void fetchBrowseCatalogs();
 
 int getCatalogCount() {
     return catalogCount;
@@ -35,18 +32,24 @@ char *getCatalogNameByIndex(int index) {
 }
 
 void createCatalogChildProcess(char *catalogPath, char *loaderPath) {
-    pipe(pipeId);
+    if (pipe(pipeInFD) == -1 || pipe(pipeOutFD) == -1) {
+        errorPrint("Error creating pipes!");
+    }
 
-    pid_t pid;
-    if ((pid = fork()) == (pid_t) -1) {
+    pid_t pid = fork();
+    if (pid < 0) {
         errorPrint("Fork-Error: Could not create catalog child-process");
     } else if (pid == 0) { // Child-process
-        if (dup2(pipeId[0], STDIN_FILENO) < 0) {
+        if (dup2(pipeInFD[0], STDIN_FILENO) < 0) {
             errorPrint("Cannot redirect stdin onto pipe!");
         }
-        if (dup2(pipeId[1], STDOUT_FILENO) < 0) {
+        if (dup2(pipeOutFD[1], STDOUT_FILENO) < 0) {
             errorPrint("Cannot redirect stdout onto pipe!");
         }
+        close(pipeInFD[0]);
+        close(pipeInFD[1]);
+        close(pipeOutFD[0]);
+        close(pipeOutFD[1]);
 
         int handle = execl(loaderPath, loaderPath, catalogPath, "-d", NULL);
         // We are only getting after execl if there was an error
@@ -59,35 +62,37 @@ void createCatalogChildProcess(char *catalogPath, char *loaderPath) {
         }
         exit(1);
     } else { // Parent-process
-//        sleep(2);
-        int status;
-//        waitpid(pid, &status, 0);
-        fetchBrowseCatalogs();
+        close(pipeInFD[0]);
+        close(pipeOutFD[1]);
     }
-
-    // Safety closing
-    close(pipeId[0]);
-    close(pipeId[1]);
 }
 
-static void fetchBrowseCatalogs() {
+void fetchBrowseCatalogs() {
     // Send browse command
-    if (write(pipeId[1], CMD_BROWSE, sizeof(CMD_BROWSE)) != sizeof(CMD_BROWSE)) {
+    if (write(pipeInFD[1], CMD_BROWSE, sizeof(CMD_BROWSE)) != sizeof(CMD_BROWSE)) {
         errorPrint("Error writing to pipe.");
     };
-    if (write(pipeId[1], CMD_SEND, sizeof(CMD_SEND)) != sizeof(CMD_SEND)) {
+    if (write(pipeInFD[1], CMD_SEND, sizeof(CMD_SEND)) != sizeof(CMD_SEND)) {
         errorPrint("Error writing to pipe.");
     };
 
-//    errorPrint("1");
     // Get the result
     char *readBuffer;
-    for (int i = 0; (readBuffer = readLine(pipeId[1])) != NULL; i++) {
-        if (strstr(readBuffer, CATALOG_FILE_EXTENSION) != NULL) {
-            memcpy(catalogs[i].name, readBuffer, strlen(readBuffer));
-            catalogCount++;
+    for (int i = 0; (readBuffer = readLine(pipeOutFD[0])) != NULL; i++) {
+        if (*readBuffer == '\0') {
+            break;
         }
+        // TODO if we filter here, we get no names in the data array?!
+        //if (strstr(readBuffer, CATALOG_FILE_EXTENSION) != NULL) {
+        memcpy(catalogs[i].name, readBuffer, strlen(readBuffer));
+        catalogCount++;
+        //}
     }
+
+    // Fake the empty entry
+    CATALOG emptyCatalog;
+    emptyCatalog.name[0] = '\0';
+    catalogs[catalogCount++] = emptyCatalog;
 }
 
 int loadCatalog(char catalogFile[]) {

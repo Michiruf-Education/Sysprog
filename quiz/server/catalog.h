@@ -13,7 +13,7 @@
 #define CMD_BROWSE "BROWSE"
 #define CATALOG_FILENAME_SIZE 32
 #define CATALOG_FILE_EXTENSION ".cat"
-#define CATALOGS_MAX_COUNT 8
+#define CATALOGS_MAX_COUNT 16
 
 typedef struct {
     char name[CATALOG_FILENAME_SIZE];
@@ -24,6 +24,8 @@ int getCatalogCount();
 char *getCatalogNameByIndex(int index);
 
 void createCatalogChildProcess(char *catalogPath, char *loaderPath);
+
+void fetchBrowseCatalogs();
 
 int loadCatalog(char catalogFile[]);
 
