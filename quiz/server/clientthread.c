@@ -69,7 +69,7 @@ int startClientThread(int userId) {
     return err;
 }
 
-void clientThread(int *userIdPtr) {
+void clientThread(int *userIdPtr) { // TODO FEEDBACK void pointers!
     int userId = *userIdPtr;
 
     if (isGameLeader(userId) >= 0) {
@@ -137,11 +137,13 @@ static int isUserAuthorizedForMessageType(int messageType, int userId) {
            ? 1 : -1;
 }
 
+// TODO FEEDBACK generell broadCastMessage Methode machen!
+
 static void handleConnectionTimeout(int userId) {
     errorPrint("Player %d has left the game!", userId);
 
     if (isGameLeader(userId) >= 0 && currentGameState == GAME_STATE_PREPARATION) {
-        for (int i = 0; i < getUserAmount(); i++) {
+        for (int i = 0; i < getUserAmount(); i++) { // TODO FEEDBACK Müsste synchronisiert werden! (falls ein user disconnected)
             if (getUserByIndex(i).index == userId) {
                 continue;
             }
@@ -169,12 +171,12 @@ static void handleConnectionTimeout(int userId) {
         currentGameState = GAME_STATE_ABORTED;
     }
 
-    infoPrint("Removing user data for user %d...", userId);
-    removeUserOverID(userId);
-
     // Just to be safe call the close of the socket (if it is not closed yet)
     infoPrint("Closing socket for user %d...", userId);
     close(getUser(userId).clientSocket);
+
+    infoPrint("Removing user data for user %d...", userId);
+    removeUserOverID(userId);
 
     infoPrint("Exiting client thread for user %d...", userId);
     pthread_exit(0);
@@ -192,6 +194,7 @@ static void handleCatalogRequest(int userId) {
         // We need to send a catalog change after the catalog request for new user to get the
         // selected catalog immediately and not have to wait for a catalog change
         // by the game leader
+        // TODO FEEDBACK Protected catalog name (because of async changes by game leader) by MUTEX
         if (selectedCatalogName != NULL && strlen(selectedCatalogName) > 0) {
             MESSAGE catalogChange = buildCatalogChange(selectedCatalogName);
             if (sendMessage(getUser(userId).clientSocket, &catalogChange) < 0) {
@@ -204,8 +207,9 @@ static void handleCatalogRequest(int userId) {
 }
 
 static void handleCatalogChange(MESSAGE message) {
-    selectedCatalogName = message.body.catalogChange.fileName;
+    selectedCatalogName = message.body.catalogChange.fileName; // TODO FEEDBACK memcpy / strcpy
     MESSAGE catalogChangeResponse = buildCatalogChange(message.body.catalogChange.fileName);
+    // TODO FEEDBACK Protect catalog name
     for (int i = 0; i < getUserAmount(); i++) {
         if (sendMessage(getUserByIndex(i).clientSocket, &catalogChangeResponse) < 0) {
             errorPrint("Unable to send catalog change response to user %s (%d)!",
@@ -216,6 +220,7 @@ static void handleCatalogChange(MESSAGE message) {
 }
 
 static void handleStartGame(MESSAGE message, int userId) {
+    // TODO Locken, weil nach der Abfrage einer gehen könnte
     if (getUserAmount() < 2) { // TODO remove hardcoded stuff -> min-players define
         MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_WARNING,
                                                  "Cannot start game because there are too few participants!");

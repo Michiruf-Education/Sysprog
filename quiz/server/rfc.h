@@ -16,7 +16,7 @@
 #include "../common/question.h"
 
 #define RFC_VERSION 9
-#define RFC_MAX_MESSAGE_SIZE 255
+#define RFC_CATALOG_FILE_MAX_LENGTH 32 // TODO FEEDBACK Use limits.h
 #define RFC_PLAYER_NAME_LENGTH 32
 #define RFC_PLAYER_COUNT_MAXIMUM 4
 #define RFC_ERROR_WARNING_MAX_LENGTH 400
@@ -64,11 +64,11 @@ typedef struct {
 } LOGIN_RESPONSE_OK;
 
 typedef struct {
-    char fileName[RFC_MAX_MESSAGE_SIZE]; // optional
+    char fileName[RFC_CATALOG_FILE_MAX_LENGTH]; // optional
 } CATALOG_RESPONSE;
 
 typedef struct {
-    char fileName[RFC_MAX_MESSAGE_SIZE];
+    char fileName[RFC_CATALOG_FILE_MAX_LENGTH];
 } CATALOG_CHANGE;
 
 typedef struct {
@@ -82,7 +82,7 @@ typedef struct {
 } PLAYER_LIST;
 
 typedef struct {
-    char catalog[RFC_MAX_MESSAGE_SIZE]; // optional in server to client responses
+    char catalog[RFC_CATALOG_FILE_MAX_LENGTH]; // optional in server to client responses
 } START_GAME;
 
 typedef struct {

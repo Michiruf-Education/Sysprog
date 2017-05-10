@@ -92,6 +92,8 @@ int main(int argc, char **argv) {
     debugPrint("    Port:\t\t%d", config.port);
 
     // Lock file handling
+    // TODO Wenn 2 Server gleichzeitig gestartet werden, läufts dennoch
+    // -> open() mit Parameter von moodle (O_EXCL ist wichtig)
     if (checkLockFileExists() >= 0) {
         errorPrint("Lock file exists (%s)! Cannot start more than one server at once! Exiting...", LOCK_FILE);
         exit(1);
@@ -99,11 +101,19 @@ int main(int argc, char **argv) {
     createLockFile();
 
     // Start the application
+    // TODO FEEDBACK Handle errors!
     createCatalogChildProcess(config.catalogPath, config.loaderPath);
     fetchBrowseCatalogs();
     startLoginThread(&config.port);
     startAwaitScoreAgentThread();
 
+    // TODO FEEDBACK We could use sigwait() to wait for any signal instead of the cleanup signal handler above
+    // Because there are functions that may not be used in signal handler
+    // If we wait for a signal here, we can just continue with cleanup stuff like normal
+
+    // TODO FEEDBACK Nächste Abgabe: Was passiert wenn ein Thread ein MUTEX hält?
+    // -> pthread_set_cancel_state Threads nicht abbrechen lassen, wenn MUTEX gehalten wird
+    // -> pthread cancel, dann join
 
     infoPrint("Exiting regular (main done)...");
     return 0;
@@ -134,7 +144,7 @@ static bool parseArguments(int argc, char **argv, CONFIGURATION *config) {
                 loaderSet = true;
                 break;
             case 'p':
-                config->port = atoi(optarg);
+                config->port = atoi(optarg); // TODO FEEDBACK atoi kann schiefgehen. Benutz strtoul (siehe man, schmeißt Fehler)
                 portSet = true;
                 break;
             case 'd':

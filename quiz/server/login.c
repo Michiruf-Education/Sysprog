@@ -55,7 +55,7 @@ int getGameMode() {
 }
 
 //return -1 on error
-int startLoginListener(int *port) {
+int startLoginListener(int *port) { // TODO FEEDBACK: Should return void* and get void* pointer for port
 
     //Initialise UserData
     initUserData();

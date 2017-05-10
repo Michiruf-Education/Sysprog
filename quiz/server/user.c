@@ -13,7 +13,7 @@
  * Da diese Datenstruktur von mehreren Threads gleichzeitig verwendet wird,
  * ist auf die korrekte Synchronisierung zu achten!
  */
-
+// TODO FEEDBACK User-Modul unabhängig von RFC machen!
 #include <stdio.h>
 #include <string.h>
 #include "user.h"
@@ -67,6 +67,7 @@ int getClientIDforUser(int clientSocketID) {
         }
     }
 
+    // TODO FEEDBACK Remove duplicate unlock!
     pthread_mutex_unlock(&mutexUserData);
     return clientID;
 }
@@ -123,7 +124,7 @@ PLAYER_LIST getPlayerList() {
 
 //gibt den Index des freien Speicherplatzes in userdata
 //Bei fehler -1
-int getFreeSlotID() {
+static int getFreeSlotID() {
     for (int i = 0; i < MAXUSERS; i++) {
         if (userdata[i].index == -1) {
             return i;
@@ -243,6 +244,7 @@ void removeUserOverID(int id) {
 
 
 //TODO updateRanking
+// TODO FEEDBACK Move into score
 void updateRanking() {
     pthread_mutex_lock(&mutexUserData);
     //update Playerliste erstellen, ggf. Rangliste neu berechnen

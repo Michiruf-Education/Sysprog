@@ -17,11 +17,11 @@
 #include "../common/util.h"
 #include "catalog.h"
 
-int pipeInFD[2];
-int pipeOutFD[2];
+static int pipeInFD[2];
+static int pipeOutFD[2];
 
-int catalogCount = 0;
-CATALOG catalogs[CATALOGS_MAX_COUNT];
+static int catalogCount = 0;
+static CATALOG catalogs[CATALOGS_MAX_COUNT];
 
 int getCatalogCount() {
     return catalogCount;
@@ -31,6 +31,7 @@ char *getCatalogNameByIndex(int index) {
     return catalogs[index].name;
 }
 
+// TODO FEEDBACK -> error handling (an main, dass die auch darauf reagieren kann)
 void createCatalogChildProcess(char *catalogPath, char *loaderPath) {
     if (pipe(pipeInFD) == -1 || pipe(pipeOutFD) == -1) {
         errorPrint("Error creating pipes!");
@@ -42,9 +43,11 @@ void createCatalogChildProcess(char *catalogPath, char *loaderPath) {
     } else if (pid == 0) { // Child-process
         if (dup2(pipeInFD[0], STDIN_FILENO) < 0) {
             errorPrint("Cannot redirect stdin onto pipe!");
+            return;
         }
         if (dup2(pipeOutFD[1], STDOUT_FILENO) < 0) {
             errorPrint("Cannot redirect stdout onto pipe!");
+            return;
         }
         close(pipeInFD[0]);
         close(pipeInFD[1]);
@@ -71,10 +74,10 @@ void fetchBrowseCatalogs() {
     // Send browse command
     if (write(pipeInFD[1], CMD_BROWSE, sizeof(CMD_BROWSE)) != sizeof(CMD_BROWSE)) {
         errorPrint("Error writing to pipe.");
-    };
+    }
     if (write(pipeInFD[1], CMD_SEND, sizeof(CMD_SEND)) != sizeof(CMD_SEND)) {
         errorPrint("Error writing to pipe.");
-    };
+    }
 
     // Get the result
     char *readBuffer;

@@ -108,6 +108,8 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
             debugPrint("//////// SUCCESS ////////");
             return headerSize;
         }
+        // TODO FEEDBACK Check length of message > maximum message length
+        //if(bodyLength > sizeof(message->body))
         ssize_t bodySize = recv(socketId, &message->body, bodyLength, MSG_WAITALL);
         debugPrint("Read body length:\t%zu", bodySize);
         if (bodySize == bodyLength) {
