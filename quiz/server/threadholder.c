@@ -16,7 +16,21 @@ typedef struct list_item {
     struct list_item *next;
 } LIST_ITEM;
 
-LIST_ITEM *first = NULL;
+static LIST_ITEM *first = NULL;
+
+static pthread_t *mainThreadId = NULL;
+
+void registerMainThread(pthread_t threadId) {
+    *mainThreadId = threadId;
+}
+
+void killMainThread() {
+    // TODO This method may must be thread safe! Check it out!
+    if(mainThreadId != NULL) {
+        // Kill does not mean the thread gets killed immediately, it just sends signals
+        pthread_kill(*mainThreadId, SIGTERM);
+    }
+}
 
 void registerThread(pthread_t threadId) {
     if (first == NULL) {
@@ -43,7 +57,7 @@ void cancelAllServerThreads() {
     LIST_ITEM *item = first;
     while (item != NULL) {
         LIST_ITEM *removeCacheItem = item;
-        infoPrint("Cancelling thread %p", item->threadId);
+        infoPrint("Cancelling thread %lu", item->threadId);
         pthread_kill(item->threadId, 0);
         item = item->next;
         free(removeCacheItem);

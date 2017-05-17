@@ -41,11 +41,13 @@ static bool parseArguments(int argc, char **argv, CONFIGURATION *config);
 
 static void printUsage();
 
-static void shutdownServer();
-
 static int createLockFile();
 
 static void removeLockFile();
+
+// TODO FEEDBACK Nächste Abgabe: Was passiert wenn ein Thread ein MUTEX hält?
+// -> pthread_set_cancel_state Threads nicht abbrechen lassen, wenn MUTEX gehalten wird
+// -> pthread cancel, dann join
 
 int main(int argc, char **argv) {
 //    // TODO Remove program args fake
@@ -68,16 +70,15 @@ int main(int argc, char **argv) {
     // Show console logging immediately
     setvbuf(stdout, NULL, _IOLBF, 0);
 
+    // Cache the main thread id
+    registerMainThread(pthread_self()); ///// TODO HERE I AM: CAUSES SEGMENTATION FAULT!!!
+    // TODO GDB-Tool kann hier helfen
+    // TODO Valgrind kann auch helfen
+
     // Change the working directory to the one the executable is located in
     if (chdir(dirname(argv[0])) < 0) {
         errnoPrint("Unable to change the working directory to the executable directory!");
     }
-
-    // Set shutdown hooks
-    signal(SIGABRT, shutdownServer);
-    signal(SIGINT, shutdownServer);
-    signal(SIGTERM, shutdownServer);
-    atexit(shutdownServer);
 
     // Initialize and parse arguments for configuration
     CONFIGURATION config = initConfiguration();
@@ -93,10 +94,10 @@ int main(int argc, char **argv) {
 
     // Lock file handling
     int createLockFileResult = createLockFile();
-    if(createLockFileResult <0) {
+    if (createLockFileResult < 0) {
         errorPrint("Could not open lock file! Exiting...");
         exit(1);
-    } else if(createLockFileResult == 0) {
+    } else if (createLockFileResult == 0) {
         errorPrint("Lock file exists (%s)! Cannot start more than one server at once! Exiting...", LOCK_FILE);
         exit(1);
     } else {
@@ -109,16 +110,25 @@ int main(int argc, char **argv) {
     fetchBrowseCatalogs();
     startLoginThread(&config.port);
     startAwaitScoreAgentThread();
+if(true) return -1;
+    // Shutdown handling:
+    // Until a terminating signal the server main-thread shell wait
+    // After this we can continue shutting down the server properly
+    sigset_t signals;
+    int signalResult;
+    sigemptyset(&signals);
+    sigaddset(&signals, SIGINT); // "CTRL-C"
+    sigaddset(&signals, SIGTERM); // Termination request
+    //pthread_sigmask(SIG_BLOCK, &signals, NULL); // TODO HERE I AM 2: GO HERE ON!
+    while (sigwait(&signals, &signalResult) == 0) {
+        errorPrint("Error waiting for signals!");
+    }
 
-    // TODO FEEDBACK We could use sigwait() to wait for any signal instead of the cleanup signal handler above
-    // Because there are functions that may not be used in signal handler
-    // If we wait for a signal here, we can just continue with cleanup stuff like normal
-
-    // TODO FEEDBACK Nächste Abgabe: Was passiert wenn ein Thread ein MUTEX hält?
-    // -> pthread_set_cancel_state Threads nicht abbrechen lassen, wenn MUTEX gehalten wird
-    // -> pthread cancel, dann join
-
-    infoPrint("Exiting regular (main done)...");
+    // Shut the server down properly
+    infoPrint(" "); // Newline after signal (just to have nicer output)
+    cancelAllServerThreads();
+    removeLockFile();
+    infoPrint("(Shutdown server) Exiting...");
     return 0;
 }
 
@@ -174,14 +184,6 @@ static void printUsage() {
     errorPrint("        -d        Enable debug output");
     errorPrint("CURRENTLY ONLY WORKS WITH DEBUG ENABLED! SEE README.txt!"); // TODO Remove later
     errorPrint("        -m        Disable colors in debug output");
-}
-
-static void shutdownServer() {
-    infoPrint(" "); // Newline
-    cancelAllServerThreads();
-    removeLockFile();
-    infoPrint("(Shutdown server) Exiting...");
-    exit(0);
 }
 
 static int createLockFile() {

@@ -11,6 +11,10 @@
 
 #include <pthread.h>
 
+void registerMainThread(pthread_t threadId);
+
+void killMainThread();
+
 void registerThread(pthread_t threadId);
 
 void cancelAllServerThreads();
