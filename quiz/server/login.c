@@ -112,22 +112,22 @@ int startLoginListener(int *port) { // TODO FEEDBACK: Should return void* and ge
 
             if (receiveMessage(client_sock, &message) < 0 && validateMessage(&message) < 0) {
                 errorPrint("Error: Message not received or malformed");
-                return -1;
+                continue;
                 
             }
 
             if (message.header.type != TYPE_LOGIN_REQUEST) {
                 errorPrint("Error: Message received but type not login request");
-                return -1;                    
+                continue;
             }
 
             memcpy(username, message.body.loginRequest.name, USERNAMELENGTH);
 
             if (addUser(username, client_sock) < 0) {
                 errorPrint("Error: User could not be added to Userdata");
-                return -1;
+                continue;
             }
-                    
+            
             //Message send
             int clientID = getClientIDforUser(client_sock);
             //infoPrint("Client-ID: %d",clientID);
@@ -135,11 +135,11 @@ int startLoginListener(int *port) { // TODO FEEDBACK: Should return void* and ge
                     
             if (sendMessage(client_sock, &sendmessage) < 0) {
                 errorPrint("Error: Message send failure");                    
-                return -1;
+                continue;
             }
                     
             printUSERDATA();
-            startClientThread(clientID);
+            startClientThread(clientID);                                     
                 
         } else {
             MESSAGE errorWarning = buildErrorWarning(
