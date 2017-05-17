@@ -110,37 +110,37 @@ int startLoginListener(int *port) { // TODO FEEDBACK: Should return void* and ge
             MESSAGE message;
             char username[USERNAMELENGTH];
 
-            if (receiveMessage(client_sock, &message) >= 0 && validateMessage(&message) >= 0) {
-
-                if (message.header.type == TYPE_LOGIN_REQUEST) {
-
-                    memcpy(username, message.body.loginRequest.name, USERNAMELENGTH);
-
-                    if (addUser(username, client_sock) >= 0) {
-                        //Message send
-                        int clientID = getClientIDforUser(client_sock);
-                        //infoPrint("Client-ID: %d",clientID);
-                        MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,
-                                                                   (__uint8_t) clientID);
-
-                        if (sendMessage(client_sock, &sendmessage) >= 0) {
-                            printUSERDATA();
-                            startClientThread(clientID);
-                        } else {
-                            errorPrint("Error: Message send failure");
-                            //TODO sendFatalErrorMessage();
-                        }
-
-                    } else {
-                        errorPrint("Error: User could not be added to Userdata");
-                    }
-
-                }
-            } else {
+            if (receiveMessage(client_sock, &message) < 0 && validateMessage(&message) < 0) {
                 errorPrint("Error: Message not received or malformed");
+                return -1;
+                
             }
 
+            if (message.header.type != TYPE_LOGIN_REQUEST) {
+                errorPrint("Error: Message received but type not login request");
+                return -1;                    
+            }
 
+            memcpy(username, message.body.loginRequest.name, USERNAMELENGTH);
+
+            if (addUser(username, client_sock) < 0) {
+                errorPrint("Error: User could not be added to Userdata");
+                return -1;
+            }
+                    
+            //Message send
+            int clientID = getClientIDforUser(client_sock);
+            //infoPrint("Client-ID: %d",clientID);
+            MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,(__uint8_t) clientID);
+                    
+            if (sendMessage(client_sock, &sendmessage) < 0) {
+                errorPrint("Error: Message send failure");                    
+                return -1;
+            }
+                    
+            printUSERDATA();
+            startClientThread(clientID);
+                
         } else {
             MESSAGE errorWarning = buildErrorWarning(
                     ERROR_WARNING_TYPE_FATAL,

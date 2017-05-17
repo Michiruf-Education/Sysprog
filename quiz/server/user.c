@@ -54,20 +54,16 @@ void clearUserData() {
 //Error: Client ID no available for user beim zweiten durchlauf
 int getClientIDforUser(int clientSocketID) {
     int clientID = -1;
-    pthread_mutex_lock(&mutexUserData);
+    pthread_mutex_lock(&mutexUserData);    
     for (int i = 0; i < MAXUSERS; i++) {
         if (userdata[i].clientSocket == clientSocketID) {
-            pthread_mutex_unlock(&mutexUserData);
             clientID = i;
             i = MAXUSERS;
         } else {
             errorPrint("Error: Client ID no available for user");
-            pthread_mutex_unlock(&mutexUserData);
             clientID = -1;
         }
-    }
-
-    // TODO FEEDBACK Remove duplicate unlock!
+    }    
     pthread_mutex_unlock(&mutexUserData);
     return clientID;
 }
