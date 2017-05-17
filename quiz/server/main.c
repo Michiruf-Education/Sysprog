@@ -19,6 +19,8 @@
 #include <libgen.h>
 #include <stdio.h>
 #include <sys/signal.h>
+#include <fcntl.h>
+#include <errno.h>
 #include "../common/util.h"
 #include "login.h"
 #include "score.h"
@@ -41,9 +43,7 @@ static void printUsage();
 
 static void shutdownServer();
 
-static int checkLockFileExists();
-
-static void createLockFile();
+static int createLockFile();
 
 static void removeLockFile();
 
@@ -92,16 +92,19 @@ int main(int argc, char **argv) {
     debugPrint("    Port:\t\t%d", config.port);
 
     // Lock file handling
-    // TODO Wenn 2 Server gleichzeitig gestartet werden, läufts dennoch
-    // -> open() mit Parameter von moodle (O_EXCL ist wichtig)
-    if (checkLockFileExists() >= 0) {
+    int createLockFileResult = createLockFile();
+    if(createLockFileResult <0) {
+        errorPrint("Could not open lock file! Exiting...");
+        exit(1);
+    } else if(createLockFileResult == 0) {
         errorPrint("Lock file exists (%s)! Cannot start more than one server at once! Exiting...", LOCK_FILE);
         exit(1);
+    } else {
+        infoPrint("Created lock file: %s", LOCK_FILE);
     }
-    createLockFile();
 
     // Start the application
-    // TODO FEEDBACK Handle errors!
+    // TODO FEEDBACK Handle errors of functions called below!
     createCatalogChildProcess(config.catalogPath, config.loaderPath);
     fetchBrowseCatalogs();
     startLoginThread(&config.port);
@@ -144,7 +147,8 @@ static bool parseArguments(int argc, char **argv, CONFIGURATION *config) {
                 loaderSet = true;
                 break;
             case 'p':
-                config->port = atoi(optarg); // TODO FEEDBACK atoi kann schiefgehen. Benutz strtoul (siehe man, schmeißt Fehler)
+                config->port = atoi(
+                        optarg); // TODO FEEDBACK atoi kann schiefgehen. Benutz strtoul (siehe man, schmeißt Fehler)
                 portSet = true;
                 break;
             case 'd':
@@ -180,24 +184,27 @@ static void shutdownServer() {
     exit(0);
 }
 
-static int checkLockFileExists() {
-    return access(LOCK_FILE, F_OK);
-}
-
-static void createLockFile() {
-    FILE *lockFile = fopen(LOCK_FILE, "w+");
-    infoPrint("Creating lock file: %s", LOCK_FILE);
-    if (lockFile == NULL) {
-        errorPrint("Could not create lock file! Exiting...");
-        exit(1);
+static int createLockFile() {
+    // O_CREAT: Create file, if it does not exist yet
+    // O_EXCL:  Fail with EEXIST, if the file already exists
+    int fd = open(LOCK_FILE, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
+        if (errno == EEXIST) {
+            return 0; // File already exists, program is probably already running
+        } else {
+            return -1; // Error opening file
+        }
+    } else {
+        close(fd);
+        return 1; // File has been created successfully
     }
-    fclose(lockFile);
 }
 
 static void removeLockFile() {
     int removal = unlink(LOCK_FILE);
-    infoPrint("Removing lock file: %s", LOCK_FILE);
     if (removal < 0) {
-        errorPrint("ERROR removing lock file (%s)", LOCK_FILE);
+        errorPrint("Error removing lock file (%s)", LOCK_FILE);
+        return;
     }
+    infoPrint("Removed lock file: %s", LOCK_FILE);
 }
