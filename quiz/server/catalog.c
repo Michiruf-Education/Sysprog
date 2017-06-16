@@ -89,11 +89,10 @@ int fetchBrowseCatalogs() {
         if (*readBuffer == '\0') {
             break;
         }
-        // TODO if we filter here, we get no names in the data array?!
-        //if (strstr(readBuffer, CATALOG_FILE_EXTENSION) != NULL) {
-        memcpy(catalogs[i].name, readBuffer, strlen(readBuffer));
-        catalogCount++;
-        //}
+        if (strstr(readBuffer, CATALOG_FILE_EXTENSION) != NULL) {
+            memcpy(catalogs[i].name, readBuffer, strlen(readBuffer));
+            catalogCount++;
+        }
     }
 
     // Fake the empty entry
