@@ -71,9 +71,7 @@ int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Cache the main thread id
-    registerMainThread(pthread_self()); ///// TODO HERE I AM: CAUSES SEGMENTATION FAULT!!!
-    // TODO GDB-Tool kann hier helfen
-    // TODO Valgrind kann auch helfen
+    registerMainThread(pthread_self());
 
     // Change the working directory to the one the executable is located in
     if (chdir(dirname(argv[0])) < 0) {
@@ -110,7 +108,7 @@ int main(int argc, char **argv) {
     fetchBrowseCatalogs();
     startLoginThread(&config.port);
     startAwaitScoreAgentThread();
-if(true) return -1;
+
     // Shutdown handling:
     // Until a terminating signal the server main-thread shell wait
     // After this we can continue shutting down the server properly
@@ -119,13 +117,14 @@ if(true) return -1;
     sigemptyset(&signals);
     sigaddset(&signals, SIGINT); // "CTRL-C"
     sigaddset(&signals, SIGTERM); // Termination request
-    //pthread_sigmask(SIG_BLOCK, &signals, NULL); // TODO HERE I AM 2: GO HERE ON!
-    while (sigwait(&signals, &signalResult) == 0) {
-        errorPrint("Error waiting for signals!");
+    sigaddset(&signals, SIGQUIT); // Quit from keyboard
+    pthread_sigmask(SIG_BLOCK, &signals, NULL);
+    while (sigwait(&signals, &signalResult) == -1) {
+        errorPrint("Error waiting for signals (or unhandled signal?)!");
     }
 
     // Shut the server down properly
-    infoPrint(" "); // Newline after signal (just to have nicer output)
+    printf("\n"); // Newline after signal (just to have nicer output)
     cancelAllServerThreads();
     removeLockFile();
     infoPrint("(Shutdown server) Exiting...");

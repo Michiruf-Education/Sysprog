@@ -8,6 +8,8 @@
  */
 #include <stdlib.h>
 #include <signal.h>
+#include <string.h>
+#include <stdio.h>
 #include "threadholder.h"
 #include "../common/util.h"
 
@@ -21,12 +23,13 @@ static LIST_ITEM *first = NULL;
 static pthread_t *mainThreadId = NULL;
 
 void registerMainThread(pthread_t threadId) {
-    *mainThreadId = threadId;
+    // Ignore IDE warnings, because it works well!
+    mainThreadId = &threadId;
 }
 
-void killMainThread() {
+void cancelMainThread() {
     // TODO This method may must be thread safe! Check it out!
-    if(mainThreadId != NULL) {
+    if (mainThreadId != NULL) {
         // Kill does not mean the thread gets killed immediately, it just sends signals
         pthread_kill(*mainThreadId, SIGTERM);
     }

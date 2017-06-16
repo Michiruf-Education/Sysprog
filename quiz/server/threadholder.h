@@ -13,7 +13,7 @@
 
 void registerMainThread(pthread_t threadId);
 
-void killMainThread();
+void cancelMainThread();
 
 void registerThread(pthread_t threadId);
 

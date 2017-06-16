@@ -39,7 +39,7 @@ int incrementScoreAgentSemaphore() {
 }
 
 //Main - start function for the ScoreAgentThread
-int startAwaitScoreAgentThread() {
+int startAwaitScoreAgentThread() { // TODO Rename: startScoreAgentThread (because we are not awaiting anymore)
 
     if (initSemaphore() >= 0) {
         int err;
@@ -49,7 +49,8 @@ int startAwaitScoreAgentThread() {
             infoPrint("ScoreAgent thread created successfully");
 
             //waits for the thread until terminate
-            pthread_join(scoreThreadID, NULL);
+            // TODO @Artur: Removed that line because main is already waiting for cancel-signals
+            //pthread_join(scoreThreadID, NULL);
             return 1;
         } else {
             errorPrint("Error: Can't create Score agent thread");
