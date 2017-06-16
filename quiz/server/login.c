@@ -34,16 +34,15 @@ pthread_t loginThreadID = 0;
 
 //Main - start function for login thread
 int startLoginThread(int *port) {
-
-    int err;
-    err = pthread_create(&loginThreadID, NULL, (void *) &startLoginListener, (void *) port);
-    if (err == 0) {
-        infoPrint("Login thread created successfully");
-        registerThread(loginThreadID);
-    } else {
+    int result = pthread_create(&loginThreadID, NULL, (void *) &startLoginListener, (void *) port);
+    if (result != 0) {
         errorPrint("Can't create Login thread");
+        return result;
     }
-    return err;
+
+    infoPrint("Login thread created successfully");
+    registerThread(loginThreadID);
+    return 0;
 }
 
 //TODO gameMode implementieren
