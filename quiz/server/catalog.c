@@ -31,10 +31,10 @@ char *getCatalogNameByIndex(int index) {
     return catalogs[index].name;
 }
 
-// TODO FEEDBACK -> error handling (an main, dass die auch darauf reagieren kann)
-void createCatalogChildProcess(char *catalogPath, char *loaderPath) {
+int createCatalogChildProcess(char *catalogPath, char *loaderPath) {
     if (pipe(pipeInFD) == -1 || pipe(pipeOutFD) == -1) {
         errorPrint("Error creating pipes!");
+        return -1;
     }
 
     pid_t pid = fork();
@@ -43,11 +43,11 @@ void createCatalogChildProcess(char *catalogPath, char *loaderPath) {
     } else if (pid == 0) { // Child-process
         if (dup2(pipeInFD[0], STDIN_FILENO) < 0) {
             errorPrint("Cannot redirect stdin onto pipe!");
-            return;
+            return -2;
         }
         if (dup2(pipeOutFD[1], STDOUT_FILENO) < 0) {
             errorPrint("Cannot redirect stdout onto pipe!");
-            return;
+            return -3;
         }
         close(pipeInFD[0]);
         close(pipeInFD[1]);
@@ -61,22 +61,26 @@ void createCatalogChildProcess(char *catalogPath, char *loaderPath) {
             errorPrint("Error executing loader:");
             errorPrint("\tPath:\t\t%s", loaderPath);
             errorPrint("\tCatalog path:\t%s", catalogPath);
-            return;
+            return -4;
         }
         exit(1);
     } else { // Parent-process
         close(pipeInFD[0]);
         close(pipeOutFD[1]);
     }
+
+    return 0;
 }
 
-void fetchBrowseCatalogs() {
+int fetchBrowseCatalogs() {
     // Send browse command
     if (write(pipeInFD[1], CMD_BROWSE, sizeof(CMD_BROWSE)) != sizeof(CMD_BROWSE)) {
         errorPrint("Error writing to pipe.");
+        return -1;
     }
     if (write(pipeInFD[1], CMD_SEND, sizeof(CMD_SEND)) != sizeof(CMD_SEND)) {
         errorPrint("Error writing to pipe.");
+        return -2;
     }
 
     // Get the result
@@ -96,6 +100,8 @@ void fetchBrowseCatalogs() {
     CATALOG emptyCatalog;
     emptyCatalog.name[0] = '\0';
     catalogs[catalogCount++] = emptyCatalog;
+
+    return 0;
 }
 
 int loadCatalog(char catalogFile[]) {

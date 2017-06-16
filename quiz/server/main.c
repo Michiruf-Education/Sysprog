@@ -104,23 +104,41 @@ int main(int argc, char **argv) {
 
     // Start the application
     // TODO FEEDBACK Handle errors of functions called below!
-    createCatalogChildProcess(config.catalogPath, config.loaderPath);
-    fetchBrowseCatalogs();
-    startLoginThread(&config.port);
-    startAwaitScoreAgentThread();
+    int hasError = 0;
+    if (createCatalogChildProcess(config.catalogPath, config.loaderPath) < 0) {
+        errorPrint("Cannot create catalog child process!");
+        hasError = 1;
+    }
+    if (!hasError && fetchBrowseCatalogs() < 0) {
+        errorPrint("Cannot fetch catalogs!");
+        hasError = 1;
+    }
+    if (!hasError && startLoginThread(&config.port) < 0) {
+        errorPrint("Cannot start login thread!");
+        hasError = 1;
+    }
+    if (!hasError && startScoreAgentThread() < 0) {
+        errorPrint("Cannot start score agent thread!");
+        hasError = 1;
+    }
 
     // Shutdown handling:
     // Until a terminating signal the server main-thread shell wait
     // After this we can continue shutting down the server properly
-    sigset_t signals;
-    int signalResult;
-    sigemptyset(&signals);
-    sigaddset(&signals, SIGINT); // "CTRL-C"
-    sigaddset(&signals, SIGTERM); // Termination request
-    sigaddset(&signals, SIGQUIT); // Quit from keyboard
-    pthread_sigmask(SIG_BLOCK, &signals, NULL);
-    while (sigwait(&signals, &signalResult) == -1) {
-        errorPrint("Error waiting for signals (or unhandled signal?)!");
+    // But we only need to wait if everything went fine
+    if (!hasError) {
+        sigset_t signals;
+        int signalResult;
+        sigemptyset(&signals);
+        sigaddset(&signals, SIGINT); // "CTRL-C"
+        sigaddset(&signals, SIGTERM); // Termination request
+        sigaddset(&signals, SIGQUIT); // Quit from keyboard
+        pthread_sigmask(SIG_BLOCK, &signals, NULL);
+        while (sigwait(&signals, &signalResult) == -1) {
+            errorPrint("Error waiting for signals (or unhandled signal?)!");
+        }
+    } else {
+        errorPrint("Shutting down server, because an error occurred.");
     }
 
     // Shut the server down properly

@@ -25,42 +25,37 @@
 #include <stdio.h>
 #include <memory.h>
 
-static sem_t trigger;        // Zugriff nur über Funktionen dieses Moduls!
-pthread_t scoreThreadID = 0;
+void startScoreAgent();
 
-//initialize Semaphore
+static pthread_t scoreThreadId = 0;
+static sem_t scoreAgentTrigger;
+
 int initSemaphore() {
-    return sem_init(&trigger, 0, 0);
+    return sem_init(&scoreAgentTrigger, 0, 0);
 }
 
-//increments (unlocks) Semaphore
 int incrementScoreAgentSemaphore() {
-    return sem_post(&trigger);
+    return sem_post(&scoreAgentTrigger);
 }
 
-//Main - start function for the ScoreAgentThread
-int startAwaitScoreAgentThread() { // TODO Rename: startScoreAgentThread (because we are not awaiting anymore)
+int startScoreAgentThread() {
+    int result;
 
-    if (initSemaphore() >= 0) {
-        int err;
-        err = pthread_create(&scoreThreadID, NULL, (void *) &startScoreAgent, NULL);
-        registerThread(scoreThreadID);
-        if (err == 0) {
-            infoPrint("ScoreAgent thread created successfully");
-
-            //waits for the thread until terminate
-            // TODO @Artur: Removed that line because main is already waiting for cancel-signals
-            //pthread_join(scoreThreadID, NULL);
-            return 1;
-        } else {
-            errorPrint("Error: Can't create Score agent thread");
-            return err;
-        }
-
-    } else {
+    result = initSemaphore();
+    if (result < 0) {
         errorPrint("Error: Semaphore could not be created/initialized");
+        return result;
+    }
+
+    result = pthread_create(&scoreThreadId, NULL, (void *) &startScoreAgent, NULL);
+    if (result != 0) {
+        errorPrint("Error: Can't create Score agent thread");
         return -1;
     }
+
+    registerThread(scoreThreadId);
+    infoPrint("ScoreAgent thread created successfully");
+    return 0;
 }
 
 void startScoreAgent() {
@@ -69,7 +64,7 @@ void startScoreAgent() {
     while (1) {
 
         //Waits until semaphor is incremented/unlocked and decrements (locks) it again
-        sem_wait(&trigger);
+        sem_wait(&scoreAgentTrigger);
         updateRanking();
         //SendPlayerListMSG
 
