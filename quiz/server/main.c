@@ -181,7 +181,6 @@ static void printUsage() {
     errorPrint("        -l        Specify loader location. Required.");
     errorPrint("        -p        Specify port. Required");
     errorPrint("        -d        Enable debug output");
-    errorPrint("CURRENTLY ONLY WORKS WITH DEBUG ENABLED! SEE README.txt!"); // TODO Remove later
     errorPrint("        -m        Disable colors in debug output");
 }
 
