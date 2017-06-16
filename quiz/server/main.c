@@ -156,8 +156,8 @@ static bool parseArguments(int argc, char **argv, CONFIGURATION *config) {
                 loaderSet = true;
                 break;
             case 'p':
-                config->port = atoi(
-                        optarg); // TODO FEEDBACK atoi kann schiefgehen. Benutz strtoul (siehe man, schmeißt Fehler)
+                // NOTE FEEDBACK atoi() kann schief gehen. Benutz strtoul (siehe man, schmeißt Fehler)
+                config->port = atoi(optarg);
                 portSet = true;
                 break;
             case 'd':
