@@ -32,7 +32,7 @@ static unsigned int userAmount = 0; //Aktuelle anzahl angemeldeter User
 void clearUserRow(int id) {
     lockUserData();
 
-    userdata[id].index = -1;
+    userdata[id].id = -1;
     userdata[id].username[0] = '\0';
     userdata[id].score = 0;
     userdata[id].clientSocket = -1;
@@ -49,7 +49,7 @@ void unlockUserData() {
     pthread_mutex_unlock(&mutexUserData);
 }
 
-//setzt user.index=-1
+//setzt user.id=-1
 void clearUserData() {
     for (int i = 0; i < MAXUSERS; i++) {
         clearUserRow(i);
@@ -58,12 +58,12 @@ void clearUserData() {
 }
 
 //Error: Client ID no available for user beim zweiten durchlauf
-int getClientIDforUser(int clientSocketID) { // TODO Rename "getClientIdBySocketId"?
+int getUserIDbyClientSocket(int clientSocket) {
     lockUserData();
     int clientId = -1;
 
     for (int i = 0; i < MAXUSERS; i++) {
-        if (userdata[i].clientSocket == clientSocketID) {
+        if (userdata[i].clientSocket == clientSocket) {
             clientId = i;
             break;
         }
@@ -98,7 +98,6 @@ int getUserAmount() {
 }
 
 PLAYER_LIST getPlayerList() {
-    lockUserData();
     PLAYER_LIST allActivePlayers;
 
     if (getUserAmount() > 0) {
@@ -108,10 +107,10 @@ PLAYER_LIST getPlayerList() {
             for (int j = nextSlot; j < MAXUSERS; j++) {
                 PLAYER activePlayer;
 
-                if (userdata[j].index != -1) {
+                if (userdata[j].id != -1) {
                     memcpy(activePlayer.name, userdata[j].username, USERNAMELENGTH);
                     activePlayer.score = userdata[j].score;
-                    activePlayer.id = userdata[j].index;
+                    activePlayer.id = userdata[j].id;
 
                     allActivePlayers.players[i] = activePlayer;
                     nextSlot = j;
@@ -122,7 +121,6 @@ PLAYER_LIST getPlayerList() {
         }
     }
 
-    unlockUserData();
     return allActivePlayers;
 }
 
@@ -130,7 +128,7 @@ PLAYER_LIST getPlayerList() {
 //Bei fehler -1
 static int getFreeSlotID() {
     for (int i = 0; i < MAXUSERS; i++) {
-        if (userdata[i].index == -1) {
+        if (userdata[i].id == -1) {
             return i;
         }
     }
@@ -142,6 +140,11 @@ static int getFreeSlotID() {
 int addUser(char *username, int socketID) {
     lockUserData();
 
+    if(strlen(username) > USERNAMELENGTH){
+        errorPrint("Username to long!");
+        return -1;
+    }
+
     if (nameExist(username) != 0) {
         errorPrint("Error: User with Username: %s already exist!", username);
 
@@ -151,7 +154,7 @@ int addUser(char *username, int socketID) {
         }
 
         unlockUserData();
-        return -1;
+        return -2;
     }
 
     if (getUserAmount() >= MAXUSERS) {
@@ -164,7 +167,7 @@ int addUser(char *username, int socketID) {
         }
 
         unlockUserData();
-        return -2;
+        return -3;
     }
 
     int freeSlot = getFreeSlotID();
@@ -174,8 +177,8 @@ int addUser(char *username, int socketID) {
         return -3;
     }
 
-    userdata[freeSlot].index = freeSlot;
-    strcpy(userdata[freeSlot].username, username); //TODO prüfen !laeger als 32
+    userdata[freeSlot].id = freeSlot;
+    strcpy(userdata[freeSlot].username, username);
     userdata[freeSlot].clientSocket = socketID;
     userdata[freeSlot].score = 0;
     userAmount++;
@@ -196,7 +199,7 @@ USER getUserByIndex(int index) {
     // Doing so we could handle the disconnect of the leader (id: 0) to still get the first connected
     // user by index.
     for (int i = 0; i < MAXUSERS; i++) {
-        if (getUser(i).index == -1) {
+        if (getUser(i).id == -1) {
             index++;
         }
         if (i >= index) {
@@ -233,19 +236,10 @@ void removeUserOverSocketID(int socketID) {
     }
 }
 
-//loescht ein User anhand des index/clientID
+//loescht ein User anhand der ID
 void removeUserOverID(int id) {
     clearUserRow(id);
     incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
-}
-
-
-//TODO updateRanking
-//TODO FEEDBACK Move into score
-void updateRanking() {
-    lockUserData();
-    //update Playerliste erstellen, ggf. Rangliste neu berechnen
-    unlockUserData();
 }
 
 //0 => ja
@@ -264,7 +258,7 @@ void printUSERDATA() {
     infoPrint("\n\n");
     infoPrint("/---------------------------------------------------------------\\\n");
     for (int i = 0; i < MAXUSERS; i++) {
-        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|\n", userdata[i].index, userdata[i].username,
+        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|\n", userdata[i].id, userdata[i].username,
                   userdata[i].score, userdata[i].clientSocket);
     }
     infoPrint("\\---------------------------------------------------------------/ \n");

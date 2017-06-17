@@ -59,13 +59,12 @@ static void broadcastMessageExcludeOneUser(MESSAGE *message, char *text, int exc
 //------------------------------------------------------------------------------
 // Fields
 //------------------------------------------------------------------------------
-int currentGameState;
+static int currentGameState;
 
-pthread_t clientThreadId = 0;
+static pthread_t clientThreadId = 0;
 
-char *selectedCatalogName = NULL;
-
-pthread_mutex_t selectedCatalogNameMutex;
+static char *selectedCatalogName = NULL;
+static pthread_mutex_t selectedCatalogNameMutex;
 
 //------------------------------------------------------------------------------
 // Implementations
@@ -73,10 +72,10 @@ pthread_mutex_t selectedCatalogNameMutex;
 int startClientThread(int userId) {
     // Initialize mutexes
     int mutexResult = pthread_mutex_init(&selectedCatalogNameMutex, NULL);
-   if(mutexResult < 0) {
-       errorPrint("Could not init selected catalog name MUTEX!");
-       return mutexResult;
-   }
+    if (mutexResult < 0) {
+        errorPrint("Could not init selected catalog name MUTEX!");
+        return mutexResult;
+    }
 
     // Create thread
     int err = pthread_create(&clientThreadId, NULL, (void *) &clientThread, &userId);
@@ -194,7 +193,7 @@ static void handleCatalogRequest(int userId) {
         if (sendMessage(getUser(userId).clientSocket, &catalogResponse) < 0) {
             errorPrint("Unable to send catalog response to %s (%d)!",
                        getUser(userId).username,
-                       getUser(userId).index);
+                       getUser(userId).id);
         }
 
         // We need to send a catalog change after the catalog request for new user to get the
@@ -206,7 +205,7 @@ static void handleCatalogRequest(int userId) {
             if (sendMessage(getUser(userId).clientSocket, &catalogChange) < 0) {
                 errorPrint("Unable to send catalog change (after catalog response) to %s (%d)!",
                            getUser(userId).username,
-                           getUser(userId).index);
+                           getUser(userId).id);
             }
         }
         pthread_mutex_unlock(&selectedCatalogNameMutex);
@@ -233,9 +232,9 @@ static void handleStartGame(MESSAGE message, int userId) {
         if (sendMessage(getUser(userId).clientSocket, &errorWarning) < 0) {
             errorPrint("Unable to send error warning to %s (%d)!",
                        getUser(userId).username,
-                       getUser(userId).index);
+                       getUser(userId).id);
         }
-        // unlockUserData();
+        unlockUserData();
         return;
     }
 
@@ -260,30 +259,31 @@ static void handleQuestionAnswered(MESSAGE message, int userId) {
 static void broadcastMessage(MESSAGE *message, char *text) {
     broadcastMessageExcludeOneUser(message, text, -1, 1);
 }
+
 static void broadcastMessageWithoutLock(MESSAGE *message, char *text) {
     broadcastMessageExcludeOneUser(message, text, -1, 0);
 }
 
 static void broadcastMessageExcludeOneUser(MESSAGE *message, char *text, int excludedUserId, int doLockUserData) {
     // We need to lock user data because it may change during iteration
-    if(doLockUserData) {
+    if (doLockUserData) {
         lockUserData();
     }
 
     // Send broadcast
     for (int i = 0; i < getUserAmount(); i++) {
         USER user = getUserByIndex(i);
-        if (user.index == excludedUserId) {
+        if (user.id == excludedUserId) {
             continue;
         }
 
         if (sendMessage(user.clientSocket, message) < 0) {
-            errorPrint(text, user.username, user.index);
+            errorPrint(text, user.username, user.id);
         }
     }
 
     // Unlock after locking
-    if(doLockUserData) {
+    if (doLockUserData) {
         unlockUserData();
     }
 }
