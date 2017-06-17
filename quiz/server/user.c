@@ -58,7 +58,7 @@ void clearUserData() {
 }
 
 //Error: Client ID no available for user beim zweiten durchlauf
-int getUserIDbyClientSocket(int clientSocket) {
+int getUserIdbyClientSocket(int clientSocket) {
     lockUserData();
     int clientId = -1;
 

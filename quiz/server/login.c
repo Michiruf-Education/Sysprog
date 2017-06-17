@@ -154,7 +154,7 @@ static int startLoginListener(int *port) { // TODO FEEDBACK: Should return void*
         }
 
         //Message send
-        int clientID = getUserIDbyClientSocket(client_sock);
+        int clientID = getUserIdbyClientSocket(client_sock);
         //infoPrint("Client-ID: %d",clientID);
         MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,
                                                    (__uint8_t) clientID);
