@@ -100,7 +100,7 @@ int getUserAmount() {
 PLAYER_LIST getPlayerListOrderedByScore() {
     PLAYER_LIST allActivePlayers=getPlayerList();
 
-
+    
 
 
     return allActivePlayers;
