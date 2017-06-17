@@ -174,7 +174,7 @@ int addUser(char *username, int socketID) {
     if (freeSlot < 0) {
         errorPrint("Error: No free slot");
         unlockUserData();
-        return -3;
+        return -4;
     }
 
     userdata[freeSlot].id = freeSlot;
