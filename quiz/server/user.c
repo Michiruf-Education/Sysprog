@@ -30,7 +30,7 @@ static unsigned int userAmount = 0; //Aktuelle anzahl angemeldeter User
 
 //reset/loescht inhalt der Zeile
 void clearUserRow(int id) {
-    pthread_mutex_lock(&mutexUserData);
+    lockUserData();
 
     userdata[id].index = -1;
     userdata[id].username[0] = '\0';
@@ -38,6 +38,14 @@ void clearUserRow(int id) {
     userdata[id].clientSocket = -1;
     userAmount--;
 
+    unlockUserData();
+}
+
+void lockUserData(){
+    pthread_mutex_lock(&mutexUserData);
+}
+
+void unlockUserData(){
     pthread_mutex_unlock(&mutexUserData);
 }
 
@@ -86,7 +94,6 @@ int getUserAmount() {
     return userAmount;
 }
 
-//TODO test-debug code-reverse
 PLAYER_LIST getPlayerList() {
     pthread_mutex_lock(&mutexUserData);
     PLAYER_LIST allActivePlayers;
@@ -238,7 +245,7 @@ void removeUserOverID(int id) {
 
 
 //TODO updateRanking
-// TODO FEEDBACK Move into score
+//TODO FEEDBACK Move into score
 void updateRanking() {
     pthread_mutex_lock(&mutexUserData);
     //update Playerliste erstellen, ggf. Rangliste neu berechnen

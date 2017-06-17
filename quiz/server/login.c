@@ -31,6 +31,7 @@
 #include "threadholder.h"
 
 pthread_t loginThreadID = 0;
+int loginIsEnable = -1;
 
 //Main - start function for login thread
 int startLoginThread(int *port) {
@@ -45,12 +46,12 @@ int startLoginThread(int *port) {
     return 0;
 }
 
-//TODO gameMode implementieren
-//return -1 => VorbereitungsPhase
-//return 1 => Spiel läuft
-//wenn StartGame (STG) c=>s dann auf Spiel läuft wechseln
-int getGameMode() {
-    return -1;
+void enableLogin() {
+    loginIsEnable = -1;
+}
+
+void disableLogin() {
+    loginIsEnable = 1;
 }
 
 //return -1 on error
@@ -104,7 +105,7 @@ int startLoginListener(int *port) { // TODO FEEDBACK: Should return void* and ge
             return -1;
         }
 
-        if (getUserAmount() < MAXUSERS && getGameMode() < 0) {
+        if (getUserAmount() < MAXUSERS && loginIsEnable < 0) {
 
             MESSAGE message;
             char username[USERNAMELENGTH];
@@ -112,7 +113,7 @@ int startLoginListener(int *port) { // TODO FEEDBACK: Should return void* and ge
             if (receiveMessage(client_sock, &message) < 0 && validateMessage(&message) < 0) {
                 errorPrint("Error: Message not received or malformed");
                 continue;
-                
+
             }
 
             if (message.header.type != TYPE_LOGIN_REQUEST) {
@@ -126,20 +127,21 @@ int startLoginListener(int *port) { // TODO FEEDBACK: Should return void* and ge
                 errorPrint("Error: User could not be added to Userdata");
                 continue;
             }
-            
+
             //Message send
             int clientID = getClientIDforUser(client_sock);
             //infoPrint("Client-ID: %d",clientID);
-            MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,(__uint8_t) clientID);
-                    
+            MESSAGE sendmessage = buildLoginResponseOk(message.body.loginRequest.rfcVersion, MAXUSERS,
+                                                       (__uint8_t) clientID);
+
             if (sendMessage(client_sock, &sendmessage) < 0) {
-                errorPrint("Error: Message send failure");                    
+                errorPrint("Error: Message send failure");
                 continue;
             }
-                    
+
             printUSERDATA();
-            startClientThread(clientID);                                     
-                
+            startClientThread(clientID);
+
         } else {
             MESSAGE errorWarning = buildErrorWarning(
                     ERROR_WARNING_TYPE_FATAL,
