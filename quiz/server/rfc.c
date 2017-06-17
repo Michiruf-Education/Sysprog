@@ -19,6 +19,7 @@
 #include <arpa/inet.h>
 #include "rfc.h"
 #include "../common/util.h"
+#include "../common/question.h"
 
 #ifndef DIRECTION_RECEIVE
 #define DIRECTION_RECEIVE 1
@@ -228,8 +229,13 @@ MESSAGE buildCatalogChange(char catalogFileName[]) {
 }
 
 MESSAGE buildPlayerList(PLAYER players[], int playerCount) {
-    if (sizeof(PLAYER) != 37) {
-        errorPrint("Size of PLAYER struct is not 37 anymore!");
+    if (debugEnabled()) {
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCSimplifyInspection"
+        if (sizeof(PLAYER) != 37) {
+            errorPrint("Size of PLAYER struct is not 37 anymore!");
+        }
+#pragma clang diagnostic pop
     }
 
     MESSAGE msg;
@@ -244,6 +250,23 @@ MESSAGE buildStartGame(/* nullable */ char catalogFileName[]) {
     msg.header.type = TYPE_START_GAME;
     msg.header.length = (uint16_t) strlen(catalogFileName);
     memcpy(msg.body.startGame.catalog, catalogFileName, strlen(catalogFileName));
+    return msg;
+}
+
+MESSAGE buildQuestion(char question[], char answers[][ANSWER_SIZE], uint8_t timeout) {
+    MESSAGE msg;
+    msg.header.type = TYPE_QUESTION;
+    msg.header.length = (uint16_t) 769;
+    memcpy(msg.body.question.question, question, sizeof(msg.body.question.question));
+    memcpy(msg.body.question.answers, answers, sizeof(msg.body.question.answers));
+    msg.body.question.timeout = timeout;
+    return msg;
+}
+
+MESSAGE buildQuestionEmpty() {
+    MESSAGE msg;
+    msg.header.type = TYPE_QUESTION;
+    msg.header.length = (uint16_t) 0;
     return msg;
 }
 

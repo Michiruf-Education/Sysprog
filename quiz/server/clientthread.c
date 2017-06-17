@@ -29,6 +29,7 @@
 #include "catalog.h"
 #include "threadholder.h"
 #include "login.h"
+#include "../common/question.h"
 
 //------------------------------------------------------------------------------
 // Method pre-declaration
@@ -43,13 +44,13 @@ static void handleConnectionTimeout(int userId);
 
 static void handleCatalogRequest(int userId);
 
-static void handleCatalogChange(MESSAGE message);
+static void handleCatalogChange(MESSAGE *message);
 
-static void handleStartGame(MESSAGE message, int userId);
+static void handleStartGame(MESSAGE *message, int userId);
 
-static void handleQuestionRequest(MESSAGE message, int userId);
+static void handleQuestionRequest(int userId);
 
-static void handleQuestionAnswered(MESSAGE message, int userId);
+static void handleQuestionAnswered(MESSAGE *message, int userId);
 
 static void broadcastMessage(MESSAGE *message, char *text);
 
@@ -66,6 +67,8 @@ static pthread_t clientThreadId = 0;
 
 static char *selectedCatalogName = NULL;
 static pthread_mutex_t selectedCatalogNameMutex;
+
+static int currentQuestion = 0;
 
 //------------------------------------------------------------------------------
 // Implementations
@@ -119,16 +122,16 @@ void clientThread(int *userIdPtr) { // TODO FEEDBACK void pointers!
                         handleCatalogRequest(userId);
                         break;
                     case TYPE_CATALOG_CHANGE:
-                        handleCatalogChange(message);
+                        handleCatalogChange(&message);
                         break;
                     case TYPE_START_GAME:
-                        handleStartGame(message, userId);
+                        handleStartGame(&message, userId);
                         break;
                     case TYPE_QUESTION_REQUEST:
-                        handleQuestionRequest(message, userId);
+                        handleQuestionRequest(userId);
                         break;
                     case TYPE_QUESTION_ANSWERED:
-                        handleQuestionAnswered(message, userId);
+                        handleQuestionAnswered(&message, userId);
                         break;
                     default:
                         // Do nothing
@@ -215,18 +218,18 @@ static void handleCatalogRequest(int userId) {
     }
 }
 
-static void handleCatalogChange(MESSAGE message) {
+static void handleCatalogChange(MESSAGE *message) {
     pthread_mutex_lock(&selectedCatalogNameMutex);
     // NOTE FEEDBACK We should use memcpy, but this crashes
     //memcpy(selectedCatalogName, message.body.catalogChange.fileName, strlen(message.body.catalogChange.fileName));
-    selectedCatalogName = message.body.catalogChange.fileName;
+    selectedCatalogName = message->body.catalogChange.fileName;
     pthread_mutex_unlock(&selectedCatalogNameMutex);
 
-    MESSAGE catalogChangeResponse = buildCatalogChange(message.body.catalogChange.fileName);
+    MESSAGE catalogChangeResponse = buildCatalogChange(message->body.catalogChange.fileName);
     broadcastMessage(&catalogChangeResponse, "Unable to send catalog change response to user %s (%d)!");
 }
 
-static void handleStartGame(MESSAGE message, int userId) {
+static void handleStartGame(MESSAGE *message, int userId) {
     lockUserData();
 
     if (getUserAmount() < MINUSERS) {
@@ -242,22 +245,35 @@ static void handleStartGame(MESSAGE message, int userId) {
     }
 
     disableLogin();
-    loadCatalog(message.body.startGame.catalog);
+    loadCatalog(message->body.startGame.catalog);
     currentGameState = GAME_STATE_GAME_RUNNING;
 
-    MESSAGE startGameResponse = buildStartGame(message.body.startGame.catalog);
+    MESSAGE startGameResponse = buildStartGame(message->body.startGame.catalog);
     broadcastMessageWithoutLock(&startGameResponse, "Unable to send start game response to user %s (%d)!");
 
     unlockUserData();
     incrementScoreAgentSemaphore();
 }
 
-static void handleQuestionRequest(MESSAGE message, int userId) {
-    // TODO Next assignment
-    errorPrint("QUESTION-REQUEST");
+static void handleQuestionRequest(int userId) {
+    MESSAGE questionResponse;
+    if (currentQuestion < getLoadedQuestionCount()) {
+        Question question = getLoadedQuestions()[currentQuestion];
+        questionResponse = buildQuestion(question.question, question.answers, question.timeout);
+    } else {
+        questionResponse = buildQuestionEmpty();
+    }
+
+    if (sendMessage(getUser(userId).clientSocket, &questionResponse) < 0) {
+        errorPrint("Unable to send question to %s (%d)!",
+                   getUser(userId).username,
+                   getUser(userId).id);
+    }
+
+    currentQuestion++;
 }
 
-static void handleQuestionAnswered(MESSAGE message, int userId) {
+static void handleQuestionAnswered(MESSAGE *message, int userId) {
     // TODO Next assignment
 }
 

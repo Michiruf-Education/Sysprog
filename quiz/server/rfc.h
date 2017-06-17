@@ -112,6 +112,7 @@ typedef union {
     START_GAME startGame;
     // TODO QUESTION_REQUEST questionRequest; --> use question.h
     // TODO QUESTION question;
+    QuestionMessage question;
     // TODO QUESTION_ANSWERED questionAnswered;
     // TODO QUESTION_RESULT questionResult;
     // TODO GAME_OVER gameOver;
@@ -145,10 +146,12 @@ MESSAGE buildPlayerList(PLAYER players[], int playerCount);
 
 MESSAGE buildStartGame(/* nullable */ char catalogFileName[]);
 
-/*
-TODO Do this for next assignment
-void buildQuestion(...);
+MESSAGE buildQuestion(char question[], char answers[][ANSWER_SIZE], uint8_t timeout);
 
+MESSAGE buildQuestionEmpty(); // For easy access (buildQuestion)
+
+/*
+ // TODO
 void buildQuestionResult(...);
 
 void buildGameOver(...);
