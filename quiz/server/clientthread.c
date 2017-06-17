@@ -164,7 +164,7 @@ static void handleConnectionTimeout(int userId) {
         broadcastMessageExcludeOneUser(&errorWarning, "Unable to send error warning to %s (%d)!", userId, 1);
 
         currentGameState = GAME_STATE_ABORTED;
-    } else if (getUserAmount() < MINUSERS && currentGameState == GAME_STATE_GAME_RUNNING) {
+    } else if (getUserAmount() - 1 < MINUSERS && currentGameState == GAME_STATE_GAME_RUNNING) {
         char *errorTextPlain = "Game cancelled because there are less than %d players left.";
         char *errorText = malloc(sizeof(errorTextPlain) + sizeof(MINUSERS));
         sprintf(errorText, errorTextPlain, MINUSERS);
