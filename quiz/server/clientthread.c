@@ -17,7 +17,6 @@
  * die Funktionen aus dem Modul catalog verwendet werden.
  */
 #include <pthread.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -185,6 +184,7 @@ static void handleConnectionTimeout(int userId) {
     removeUserOverID(userId);
 
     infoPrint("Exiting client thread for user %d...", userId);
+    unregisterThread(pthread_self());
     pthread_exit(0);
 }
 
@@ -225,8 +225,8 @@ static void handleCatalogChange(MESSAGE message) {
 }
 
 static void handleStartGame(MESSAGE message, int userId) {
-    // TODO uncomment
-    // lockUserData();
+    lockUserData();
+
     if (getUserAmount() < MINUSERS) {
         MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_WARNING,
                                                  "Cannot start game because there are too few participants!");
@@ -244,9 +244,8 @@ static void handleStartGame(MESSAGE message, int userId) {
 
     MESSAGE startGameResponse = buildStartGame(message.body.startGame.catalog);
     broadcastMessageWithoutLock(&startGameResponse, "Unable to send start game response to user %s (%d)!");
-    // TODO uncomment
-    // unlockUserData();
 
+    unlockUserData();
     incrementScoreAgentSemaphore();
 }
 
@@ -265,11 +264,10 @@ static void broadcastMessageWithoutLock(MESSAGE *message, char *text) {
     broadcastMessageExcludeOneUser(message, text, -1, 0);
 }
 
-static void broadcastMessageExcludeOneUser(MESSAGE *message, char *text, int excludedUserId, int lockUserData) {
-    // TODO uncomment
+static void broadcastMessageExcludeOneUser(MESSAGE *message, char *text, int excludedUserId, int doLockUserData) {
     // We need to lock user data because it may change during iteration
-    if(lockUserData) {
-        // lockUserData();
+    if(doLockUserData) {
+        lockUserData();
     }
 
     // Send broadcast
@@ -285,8 +283,7 @@ static void broadcastMessageExcludeOneUser(MESSAGE *message, char *text, int exc
     }
 
     // Unlock after locking
-    if(lockUserData) {
-        // TODO
-        // unlockUserData();
+    if(doLockUserData) {
+        unlockUserData();
     }
 }

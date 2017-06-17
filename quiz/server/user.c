@@ -41,11 +41,11 @@ void clearUserRow(int id) {
     unlockUserData();
 }
 
-void lockUserData(){
+void lockUserData() {
     pthread_mutex_lock(&mutexUserData);
 }
 
-void unlockUserData(){
+void unlockUserData() {
     pthread_mutex_unlock(&mutexUserData);
 }
 
@@ -59,7 +59,7 @@ void clearUserData() {
 
 //Error: Client ID no available for user beim zweiten durchlauf
 int getClientIDforUser(int clientSocketID) { // TODO Rename "getClientIdBySocketId"?
-    pthread_mutex_lock(&mutexUserData);
+    lockUserData();
     int clientId = -1;
 
     for (int i = 0; i < MAXUSERS; i++) {
@@ -69,11 +69,11 @@ int getClientIDforUser(int clientSocketID) { // TODO Rename "getClientIdBySocket
         }
     }
 
-    if(clientId == -1) {
+    if (clientId == -1) {
         errorPrint("Error: Client ID not available for user");
     }
 
-    pthread_mutex_unlock(&mutexUserData);
+    unlockUserData();
     return clientId;
 }
 
@@ -98,7 +98,7 @@ int getUserAmount() {
 }
 
 PLAYER_LIST getPlayerList() {
-    pthread_mutex_lock(&mutexUserData);
+    lockUserData();
     PLAYER_LIST allActivePlayers;
 
     if (getUserAmount() > 0) {
@@ -121,8 +121,8 @@ PLAYER_LIST getPlayerList() {
             }
         }
     }
-    pthread_mutex_unlock(&mutexUserData);
 
+    unlockUserData();
     return allActivePlayers;
 }
 
@@ -140,10 +140,7 @@ static int getFreeSlotID() {
 //Hinzufuegen eines Users
 //Bei Fehler => -1
 int addUser(char *username, int socketID) {
-    //putchar('\n');
-
-    //Mutex Lock
-    pthread_mutex_lock(&mutexUserData);
+    lockUserData();
 
     if (nameExist(username) != 0) {
         errorPrint("Error: User with Username: %s already exist!", username);
@@ -153,7 +150,7 @@ int addUser(char *username, int socketID) {
             errorPrint("Unable to send error warning to");
         }
 
-        pthread_mutex_unlock(&mutexUserData);
+        unlockUserData();
         return -1;
     }
 
@@ -165,29 +162,28 @@ int addUser(char *username, int socketID) {
         if (sendMessage(socketID, &errorWarning) < 0) {
             errorPrint("Unable to send error warning to");
         }
-        pthread_mutex_unlock(&mutexUserData);
-        return -1;
+
+        unlockUserData();
+        return -2;
     }
 
     int freeSlot = getFreeSlotID();
-    if (freeSlot >= 0) {
-        userdata[freeSlot].index = freeSlot;
-        strcpy(userdata[freeSlot].username, username); //TODO prüfen !laeger als 32
-        userdata[freeSlot].clientSocket = socketID;
-        userdata[freeSlot].score = 0;
-
-        userAmount++;
-
-        pthread_mutex_unlock(&mutexUserData);
-        incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
-
-        return 1;
-    } else {
-        pthread_mutex_unlock(&mutexUserData);
+    if (freeSlot < 0) {
         errorPrint("Error: No free slot");
-        return -1;
+        unlockUserData();
+        return -3;
     }
 
+    userdata[freeSlot].index = freeSlot;
+    strcpy(userdata[freeSlot].username, username); //TODO prüfen !laeger als 32
+    userdata[freeSlot].clientSocket = socketID;
+    userdata[freeSlot].score = 0;
+    userAmount++;
+
+    unlockUserData();
+    incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
+
+    return 1;
 }
 
 USER getUser(int id) {
@@ -247,9 +243,9 @@ void removeUserOverID(int id) {
 //TODO updateRanking
 //TODO FEEDBACK Move into score
 void updateRanking() {
-    pthread_mutex_lock(&mutexUserData);
+    lockUserData();
     //update Playerliste erstellen, ggf. Rangliste neu berechnen
-    pthread_mutex_unlock(&mutexUserData);
+    unlockUserData();
 }
 
 //0 => ja

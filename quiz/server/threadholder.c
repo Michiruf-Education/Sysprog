@@ -54,6 +54,20 @@ void registerThread(pthread_t threadId) {
     lastItem->next = newItem;
 }
 
+void unregisterThread(pthread_t threadId) {
+    LIST_ITEM *item = first;
+    LIST_ITEM *lastItem = NULL;
+    while (item != NULL && item->threadId != threadId) {
+        lastItem = item;
+        item = item->next;
+    }
+
+    if (item != NULL && lastItem != NULL) {
+        lastItem->next = item->next;
+        free(item);
+    }
+}
+
 void cancelAllServerThreads() {
     infoPrint("Cancelling all server threads...");
 
