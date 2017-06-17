@@ -28,6 +28,7 @@
 #include "score.h"
 #include "catalog.h"
 #include "threadholder.h"
+#include "login.h"
 
 //------------------------------------------------------------------------------
 // Method pre-declaration
@@ -104,11 +105,13 @@ void clientThread(int *userIdPtr) { // TODO FEEDBACK void pointers!
                     errorPrint("User %d not allowed to send RFC type %d in current game state: %d!", userId,
                                message.header.type, currentGameState);
                     return;
+                    // TODO continue instead of return?
                 }
 
                 if (isUserAuthorizedForMessageType(userId, message.header.type) < 0) {
                     errorPrint("User %d not allowed to send RFC type %d!", userId, message.header.type);
                     return;
+                    // TODO continue instead of return?
                 }
 
                 switch (message.header.type) {
@@ -238,6 +241,7 @@ static void handleStartGame(MESSAGE message, int userId) {
         return;
     }
 
+    disableLogin();
     loadCatalog(message.body.startGame.catalog);
     currentGameState = GAME_STATE_GAME_RUNNING;
 
@@ -250,6 +254,7 @@ static void handleStartGame(MESSAGE message, int userId) {
 
 static void handleQuestionRequest(MESSAGE message, int userId) {
     // TODO Next assignment
+    errorPrint("QUESTION-REQUEST");
 }
 
 static void handleQuestionAnswered(MESSAGE message, int userId) {
