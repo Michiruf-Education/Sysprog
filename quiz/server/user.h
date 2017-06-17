@@ -48,6 +48,8 @@ int isGameLeader(int id);
 
 PLAYER_LIST getPlayerList();
 
+PLAYER_LIST getPlayerListOrderedByScore();
+
 void printUSERDATA();
 
 void printPLAYERLIST();
