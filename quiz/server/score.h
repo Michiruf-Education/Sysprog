@@ -16,6 +16,6 @@ int startScoreAgentThread();
 int initSemaphore();
 
 //increments (unlocks) Semaphore
-int incrementScoreAgentSemaphore();
+int incrementScoreAgentSemaphore(); // TODO Rename notifyScoreAgent!
 
 #endif

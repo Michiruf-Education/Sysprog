@@ -20,6 +20,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "../common/util.h"
 #include "clientthread.h"
 #include "rfc.h"
@@ -29,14 +31,8 @@
 #include "threadholder.h"
 
 //------------------------------------------------------------------------------
-// Fields and method pre-declaration
+// Method pre-declaration
 //------------------------------------------------------------------------------
-int currentGameState;
-
-pthread_t clientThreadId = 0;
-
-char *selectedCatalogName = NULL;
-
 void clientThread(int *userIdPrt);
 
 static int isMessageTypeAllowedInCurrentGameState(int gameState, int messageType);
@@ -55,10 +51,35 @@ static void handleQuestionRequest(MESSAGE message, int userId);
 
 static void handleQuestionAnswered(MESSAGE message, int userId);
 
+static void broadcastMessage(MESSAGE *message, char *text);
+
+static void broadcastMessageWithoutLock(MESSAGE *message, char *text);
+
+static void broadcastMessageExcludeOneUser(MESSAGE *message, char *text, int excludedUserId, int lockUserData);
+
+//------------------------------------------------------------------------------
+// Fields
+//------------------------------------------------------------------------------
+int currentGameState;
+
+pthread_t clientThreadId = 0;
+
+char *selectedCatalogName = NULL;
+
+pthread_mutex_t selectedCatalogNameMutex;
+
 //------------------------------------------------------------------------------
 // Implementations
 //------------------------------------------------------------------------------
 int startClientThread(int userId) {
+    // Initialize mutexes
+    int mutexResult = pthread_mutex_init(&selectedCatalogNameMutex, NULL);
+   if(mutexResult < 0) {
+       errorPrint("Could not init selected catalog name MUTEX!");
+       return mutexResult;
+   }
+
+    // Create thread
     int err = pthread_create(&clientThreadId, NULL, (void *) &clientThread, &userId);
     registerThread(clientThreadId);
     if (err == 0) {
@@ -137,37 +158,22 @@ static int isUserAuthorizedForMessageType(int messageType, int userId) {
            ? 1 : -1;
 }
 
-// TODO FEEDBACK generell broadCastMessage Methode machen!
-
 static void handleConnectionTimeout(int userId) {
     errorPrint("Player %d has left the game!", userId);
 
     if (isGameLeader(userId) >= 0 && currentGameState == GAME_STATE_PREPARATION) {
-        for (int i = 0; i < getUserAmount(); i++) { // TODO FEEDBACK Müsste synchronisiert werden! (falls ein user disconnected)
-            if (getUserByIndex(i).index == userId) {
-                continue;
-            }
-            MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, "Game leader has left the game.");
-            if (sendMessage(getUserByIndex(i).clientSocket, &errorWarning) < 0) {
-                errorPrint("Unable to send error warning to %s (%d)!",
-                           getUserByIndex(i).username,
-                           getUserByIndex(i).index);
-            }
-        }
+        MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, "Game leader has left the game.");
+        broadcastMessageExcludeOneUser(&errorWarning, "Unable to send error warning to %s (%d)!", userId, 1);
+
         currentGameState = GAME_STATE_ABORTED;
-    } else if (getUserAmount() < 2 && currentGameState == GAME_STATE_GAME_RUNNING) {
-        for (int i = 0; i < getUserAmount(); i++) {
-            if (getUserByIndex(i).index == userId) {
-                continue;
-            }
-            MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL,
-                                                     "Game cancelled because there are less than 2 players left.");
-            if (sendMessage(getUserByIndex(i).clientSocket, &errorWarning) < 0) {
-                errorPrint("Unable to send error warning to %s (%d)!",
-                           getUserByIndex(i).username,
-                           getUserByIndex(i).index);
-            }
-        }
+    } else if (getUserAmount() < MINUSERS && currentGameState == GAME_STATE_GAME_RUNNING) {
+        char *errorTextPlain = "Game cancelled because there are less than %d players left.";
+        char *errorText = malloc(sizeof(errorTextPlain) + sizeof(MINUSERS));
+        sprintf(errorText, errorTextPlain, MINUSERS);
+
+        MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, errorText);
+        broadcastMessageExcludeOneUser(&errorWarning, "Unable to send error warning to %s (%d)!", userId, 1);
+
         currentGameState = GAME_STATE_ABORTED;
     }
 
@@ -194,7 +200,7 @@ static void handleCatalogRequest(int userId) {
         // We need to send a catalog change after the catalog request for new user to get the
         // selected catalog immediately and not have to wait for a catalog change
         // by the game leader
-        // TODO FEEDBACK Protected catalog name (because of async changes by game leader) by MUTEX
+        pthread_mutex_lock(&selectedCatalogNameMutex);
         if (selectedCatalogName != NULL && strlen(selectedCatalogName) > 0) {
             MESSAGE catalogChange = buildCatalogChange(selectedCatalogName);
             if (sendMessage(getUser(userId).clientSocket, &catalogChange) < 0) {
@@ -203,25 +209,25 @@ static void handleCatalogRequest(int userId) {
                            getUser(userId).index);
             }
         }
+        pthread_mutex_unlock(&selectedCatalogNameMutex);
     }
 }
 
 static void handleCatalogChange(MESSAGE message) {
-    selectedCatalogName = message.body.catalogChange.fileName; // TODO FEEDBACK memcpy / strcpy
+    pthread_mutex_lock(&selectedCatalogNameMutex);
+    // NOTE FEEDBACK We should use memcpy, but this crashes
+    //memcpy(selectedCatalogName, message.body.catalogChange.fileName, strlen(message.body.catalogChange.fileName));
+    selectedCatalogName = message.body.catalogChange.fileName;
+    pthread_mutex_unlock(&selectedCatalogNameMutex);
+
     MESSAGE catalogChangeResponse = buildCatalogChange(message.body.catalogChange.fileName);
-    // TODO FEEDBACK Protect catalog name
-    for (int i = 0; i < getUserAmount(); i++) {
-        if (sendMessage(getUserByIndex(i).clientSocket, &catalogChangeResponse) < 0) {
-            errorPrint("Unable to send catalog change response to user %s (%d)!",
-                       getUserByIndex(i).username,
-                       getUserByIndex(i).index);
-        }
-    }
+    broadcastMessage(&catalogChangeResponse, "Unable to send catalog change response to user %s (%d)!");
 }
 
 static void handleStartGame(MESSAGE message, int userId) {
-    // TODO Locken, weil nach der Abfrage einer gehen könnte
-    if (getUserAmount() < 2) { // TODO remove hardcoded stuff -> min-players define
+    // TODO uncomment
+    // lockUserData();
+    if (getUserAmount() < MINUSERS) {
         MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_WARNING,
                                                  "Cannot start game because there are too few participants!");
         if (sendMessage(getUser(userId).clientSocket, &errorWarning) < 0) {
@@ -229,6 +235,7 @@ static void handleStartGame(MESSAGE message, int userId) {
                        getUser(userId).username,
                        getUser(userId).index);
         }
+        // unlockUserData();
         return;
     }
 
@@ -236,13 +243,9 @@ static void handleStartGame(MESSAGE message, int userId) {
     currentGameState = GAME_STATE_GAME_RUNNING;
 
     MESSAGE startGameResponse = buildStartGame(message.body.startGame.catalog);
-    for (int i = 0; i < getUserAmount(); i++) {
-        if (sendMessage(getUserByIndex(i).clientSocket, &startGameResponse) < 0) {
-            errorPrint("Unable to send start game response to user %s (%d)!",
-                       getUserByIndex(i).username,
-                       getUserByIndex(i).index);
-        }
-    }
+    broadcastMessageWithoutLock(&startGameResponse, "Unable to send start game response to user %s (%d)!");
+    // TODO uncomment
+    // unlockUserData();
 
     incrementScoreAgentSemaphore();
 }
@@ -253,4 +256,37 @@ static void handleQuestionRequest(MESSAGE message, int userId) {
 
 static void handleQuestionAnswered(MESSAGE message, int userId) {
     // TODO Next assignment
+}
+
+static void broadcastMessage(MESSAGE *message, char *text) {
+    broadcastMessageExcludeOneUser(message, text, -1, 1);
+}
+static void broadcastMessageWithoutLock(MESSAGE *message, char *text) {
+    broadcastMessageExcludeOneUser(message, text, -1, 0);
+}
+
+static void broadcastMessageExcludeOneUser(MESSAGE *message, char *text, int excludedUserId, int lockUserData) {
+    // TODO uncomment
+    // We need to lock user data because it may change during iteration
+    if(lockUserData) {
+        // lockUserData();
+    }
+
+    // Send broadcast
+    for (int i = 0; i < getUserAmount(); i++) {
+        USER user = getUserByIndex(i);
+        if (user.index == excludedUserId) {
+            continue;
+        }
+
+        if (sendMessage(user.clientSocket, message) < 0) {
+            errorPrint(text, user.username, user.index);
+        }
+    }
+
+    // Unlock after locking
+    if(lockUserData) {
+        // TODO
+        // unlockUserData();
+    }
 }
