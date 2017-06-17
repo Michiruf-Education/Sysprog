@@ -13,7 +13,6 @@
  * Da diese Datenstruktur von mehreren Threads gleichzeitig verwendet wird,
  * ist auf die korrekte Synchronisierung zu achten!
  */
-// TODO FEEDBACK User-Modul unabhängig von RFC machen!
 #include <stdio.h>
 #include <string.h>
 #include "user.h"
@@ -22,7 +21,6 @@
 #include "../common/util.h"
 #include "vardefine.h"
 #include "score.h"
-#include "rfc.h"
 
 //pthread_t
 pthread_mutex_t mutexUserData;
@@ -194,7 +192,7 @@ USER getUserByIndex(int index) {
     // separate the index and the id in the future.
     // Doing so we could handle the disconnect of the leader (id: 0) to still get the first connected
     // user by index.
-    for (int i = 0; i < MAXUSERS; i++) { // TODO
+    for (int i = 0; i < MAXUSERS; i++) {
         if (getUser(i).index == -1) {
             index++;
         }

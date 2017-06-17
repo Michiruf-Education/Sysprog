@@ -35,7 +35,6 @@ static void fixRFCHeader(MESSAGE *message, int direction) {
 
 static void fixRFCBody(MESSAGE *message, int direction) {
     /**
-     * TODO comment
      * Wenn man ein Feld vom typ uint_16 benutzt, einmal die byte order per ntohs() umdrehen
      * Wenn man ein Feld vom typ uint_32+ benutzt, einmal die byte order per ntohl() umdrehen
      */

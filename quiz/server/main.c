@@ -19,6 +19,8 @@
 #include <libgen.h>
 #include <stdio.h>
 #include <sys/signal.h>
+#include <fcntl.h>
+#include <errno.h>
 #include "../common/util.h"
 #include "login.h"
 #include "score.h"
@@ -39,13 +41,13 @@ static bool parseArguments(int argc, char **argv, CONFIGURATION *config);
 
 static void printUsage();
 
-static void shutdownServer();
-
-static int checkLockFileExists();
-
-static void createLockFile();
+static int createLockFile();
 
 static void removeLockFile();
+
+// TODO FEEDBACK Nächste Abgabe: Was passiert wenn ein Thread ein MUTEX hält?
+// -> pthread_set_cancel_state Threads nicht abbrechen lassen, wenn MUTEX gehalten wird
+// -> pthread cancel, dann join
 
 int main(int argc, char **argv) {
 //    // TODO Remove program args fake
@@ -68,16 +70,13 @@ int main(int argc, char **argv) {
     // Show console logging immediately
     setvbuf(stdout, NULL, _IOLBF, 0);
 
+    // Cache the main thread id
+    registerMainThread(pthread_self());
+
     // Change the working directory to the one the executable is located in
     if (chdir(dirname(argv[0])) < 0) {
         errnoPrint("Unable to change the working directory to the executable directory!");
     }
-
-    // Set shutdown hooks
-    signal(SIGABRT, shutdownServer);
-    signal(SIGINT, shutdownServer);
-    signal(SIGTERM, shutdownServer);
-    atexit(shutdownServer);
 
     // Initialize and parse arguments for configuration
     CONFIGURATION config = initConfiguration();
@@ -92,30 +91,61 @@ int main(int argc, char **argv) {
     debugPrint("    Port:\t\t%d", config.port);
 
     // Lock file handling
-    // TODO Wenn 2 Server gleichzeitig gestartet werden, läufts dennoch
-    // -> open() mit Parameter von moodle (O_EXCL ist wichtig)
-    if (checkLockFileExists() >= 0) {
+    int createLockFileResult = createLockFile();
+    if (createLockFileResult < 0) {
+        errorPrint("Could not open lock file! Exiting...");
+        exit(1);
+    } else if (createLockFileResult == 0) {
         errorPrint("Lock file exists (%s)! Cannot start more than one server at once! Exiting...", LOCK_FILE);
         exit(1);
+    } else {
+        infoPrint("Created lock file: %s", LOCK_FILE);
     }
-    createLockFile();
 
     // Start the application
-    // TODO FEEDBACK Handle errors!
-    createCatalogChildProcess(config.catalogPath, config.loaderPath);
-    fetchBrowseCatalogs();
-    startLoginThread(&config.port);
-    startAwaitScoreAgentThread();
+    // TODO FEEDBACK Handle errors of functions called below!
+    int hasError = 0;
+    if (createCatalogChildProcess(config.catalogPath, config.loaderPath) < 0) {
+        errorPrint("Cannot create catalog child process!");
+        hasError = 1;
+    }
+    if (!hasError && fetchBrowseCatalogs() < 0) {
+        errorPrint("Cannot fetch catalogs!");
+        hasError = 1;
+    }
+    if (!hasError && startLoginThread(&config.port) < 0) {
+        errorPrint("Cannot start login thread!");
+        hasError = 1;
+    }
+    if (!hasError && startScoreAgentThread() < 0) {
+        errorPrint("Cannot start score agent thread!");
+        hasError = 1;
+    }
 
-    // TODO FEEDBACK We could use sigwait() to wait for any signal instead of the cleanup signal handler above
-    // Because there are functions that may not be used in signal handler
-    // If we wait for a signal here, we can just continue with cleanup stuff like normal
+    // Shutdown handling:
+    // Until a terminating signal the server main-thread shell wait
+    // After this we can continue shutting down the server properly
+    // But we only need to wait if everything went fine
+    if (!hasError) {
+        sigset_t signals;
+        int signalResult;
+        sigemptyset(&signals);
+        sigaddset(&signals, SIGINT); // "CTRL-C"
+        sigaddset(&signals, SIGTERM); // Termination request
+        sigaddset(&signals, SIGQUIT); // Quit from keyboard
+        pthread_sigmask(SIG_BLOCK, &signals, NULL);
+        while (sigwait(&signals, &signalResult) == -1) {
+            errorPrint("Error waiting for signals (or unhandled signal?)!");
+        }
+    } else {
+        errorPrint("Shutting down server, because an error occurred.");
+    }
 
-    // TODO FEEDBACK Nächste Abgabe: Was passiert wenn ein Thread ein MUTEX hält?
-    // -> pthread_set_cancel_state Threads nicht abbrechen lassen, wenn MUTEX gehalten wird
-    // -> pthread cancel, dann join
-
-    infoPrint("Exiting regular (main done)...");
+    // Shut the server down properly
+    printf("\n"); // Newline after signal (just to have nicer output)
+    cancelAllServerThreads();
+    removeLockFile();
+    infoPrint("(Shutdown server) Exiting...");
     return 0;
 }
 
@@ -144,7 +174,8 @@ static bool parseArguments(int argc, char **argv, CONFIGURATION *config) {
                 loaderSet = true;
                 break;
             case 'p':
-                config->port = atoi(optarg); // TODO FEEDBACK atoi kann schiefgehen. Benutz strtoul (siehe man, schmeißt Fehler)
+                // NOTE FEEDBACK atoi() kann schief gehen. Benutz strtoul (siehe man, schmeißt Fehler)
+                config->port = atoi(optarg);
                 portSet = true;
                 break;
             case 'd':
@@ -168,36 +199,30 @@ static void printUsage() {
     errorPrint("        -l        Specify loader location. Required.");
     errorPrint("        -p        Specify port. Required");
     errorPrint("        -d        Enable debug output");
-    errorPrint("CURRENTLY ONLY WORKS WITH DEBUG ENABLED! SEE README.txt!"); // TODO Remove later
     errorPrint("        -m        Disable colors in debug output");
 }
 
-static void shutdownServer() {
-    infoPrint(" "); // Newline
-    cancelAllServerThreads();
-    removeLockFile();
-    infoPrint("(Shutdown server) Exiting...");
-    exit(0);
-}
-
-static int checkLockFileExists() {
-    return access(LOCK_FILE, F_OK);
-}
-
-static void createLockFile() {
-    FILE *lockFile = fopen(LOCK_FILE, "w+");
-    infoPrint("Creating lock file: %s", LOCK_FILE);
-    if (lockFile == NULL) {
-        errorPrint("Could not create lock file! Exiting...");
-        exit(1);
+static int createLockFile() {
+    // O_CREAT: Create file, if it does not exist yet
+    // O_EXCL:  Fail with EEXIST, if the file already exists
+    int fd = open(LOCK_FILE, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
+        if (errno == EEXIST) {
+            return 0; // File already exists, program is probably already running
+        } else {
+            return -1; // Error opening file
+        }
+    } else {
+        close(fd);
+        return 1; // File has been created successfully
     }
-    fclose(lockFile);
 }
 
 static void removeLockFile() {
     int removal = unlink(LOCK_FILE);
-    infoPrint("Removing lock file: %s", LOCK_FILE);
     if (removal < 0) {
-        errorPrint("ERROR removing lock file (%s)", LOCK_FILE);
+        errorPrint("Error removing lock file (%s)", LOCK_FILE);
+        return;
     }
+    infoPrint("Removed lock file: %s", LOCK_FILE);
 }

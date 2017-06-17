@@ -23,9 +23,9 @@ int getCatalogCount();
 
 char *getCatalogNameByIndex(int index);
 
-void createCatalogChildProcess(char *catalogPath, char *loaderPath);
+int createCatalogChildProcess(char *catalogPath, char *loaderPath);
 
-void fetchBrowseCatalogs();
+int fetchBrowseCatalogs();
 
 int loadCatalog(char catalogFile[]);
 
