@@ -25,7 +25,7 @@
 //pthread_t
 pthread_mutex_t mutexUserData;
 
-static USER userdata[4];
+static USER userdata[MAXUSERS];
 static unsigned int userAmount = 0; //Aktuelle anzahl angemeldeter User
 
 //reset/loescht inhalt der Zeile
@@ -97,6 +97,15 @@ int getUserAmount() {
     return userAmount;
 }
 
+PLAYER_LIST getPlayerListOrderedByScore() {
+    PLAYER_LIST allActivePlayers=getPlayerList();
+
+
+
+
+    return allActivePlayers;
+}
+
 PLAYER_LIST getPlayerList() {
     PLAYER_LIST allActivePlayers;
 
@@ -140,7 +149,7 @@ static int getFreeSlotID() {
 int addUser(char *username, int socketID) {
     lockUserData();
 
-    if(strlen(username) > USERNAMELENGTH){
+    if (strlen(username) > USERNAMELENGTH) {
         errorPrint("Username to long!");
         return -1;
     }

@@ -58,11 +58,23 @@ int startScoreAgentThread() {
     return 0;
 }
 
+void calcScoreForUserByID(int timeout, int neededtime, int id) {
+    int scoreForCurrentQuestion = 0;
+    scoreForCurrentQuestion = timeout - neededtime * 100; //TODO eventuell berechnung der Punktevergabe verbessern
+
+
+    lockUserData();
+    USER user = getUser(id);
+    user.score = user.score + scoreForCurrentQuestion;
+    unlockUserData();
+}
 
 
 //TODO updateRanking
 void updateRanking() {
     //update Playerliste erstellen, ggf. Rangliste neu berechnen
+    //Player nach score sortieren
+    printf("\n=====> here\n");
 
 }
 
