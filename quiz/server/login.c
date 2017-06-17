@@ -13,7 +13,6 @@
  * Eintragen neuer Clients die von Ihnen entwickelten Funktionen aus dem Modul
  * user.
  */
-
 #include "login.h"
 #include <stdio.h>
 #include <string.h>
@@ -26,9 +25,10 @@
 #include "../common/util.h"
 #include <pthread.h>
 #include <stdlib.h>
-#include "rfc.h"
 #include "clientthread.h"
 #include "threadholder.h"
+
+int startLoginListener(int *port);
 
 pthread_t loginThreadID = 0;
 
@@ -37,7 +37,7 @@ int startLoginThread(int *port) {
     int result = pthread_create(&loginThreadID, NULL, (void *) &startLoginListener, (void *) port);
     if (result != 0) {
         errorPrint("Can't create Login thread");
-        return result;
+        return -1;
     }
 
     infoPrint("Login thread created successfully");
@@ -55,7 +55,6 @@ int getGameMode() {
 
 //return -1 on error
 int startLoginListener(int *port) { // TODO FEEDBACK: Should return void* and get void* pointer for port
-
     //Initialise UserData
     initUserData();
 

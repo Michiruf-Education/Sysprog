@@ -12,6 +12,4 @@
 
 int startLoginThread(int *port);
 
-int startLoginListener(int *port);
-
 #endif

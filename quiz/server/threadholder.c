@@ -28,7 +28,7 @@ void registerMainThread(pthread_t threadId) {
 }
 
 void cancelMainThread() {
-    // TODO This method may must be thread safe! Check it out!
+    // NOTE This method may must be thread safe! Check it out!
     if (mainThreadId != NULL) {
         // Kill does not mean the thread gets killed immediately, it just sends signals
         pthread_kill(*mainThreadId, SIGTERM);

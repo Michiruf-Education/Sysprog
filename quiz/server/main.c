@@ -137,12 +137,12 @@ int main(int argc, char **argv) {
         while (sigwait(&signals, &signalResult) == -1) {
             errorPrint("Error waiting for signals (or unhandled signal?)!");
         }
+        printf("\n"); // Newline after signal (just to have a nicer output)
     } else {
         errorPrint("Shutting down server, because an error occurred.");
     }
 
     // Shut the server down properly
-    printf("\n"); // Newline after signal (just to have nicer output)
     cancelAllServerThreads();
     removeLockFile();
     infoPrint("(Shutdown server) Exiting...");

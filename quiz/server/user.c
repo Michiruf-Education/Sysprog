@@ -50,22 +50,21 @@ void clearUserData() {
 }
 
 //Error: Client ID no available for user beim zweiten durchlauf
-int getClientIDforUser(int clientSocketID) {
-    int clientID = -1;
+int getClientIDforUser(int clientSocketID) { // TODO Rename "getClientIdBySocketId"?
     pthread_mutex_lock(&mutexUserData);
+    int clientID = -1;
+
     for (int i = 0; i < MAXUSERS; i++) {
         if (userdata[i].clientSocket == clientSocketID) {
-            pthread_mutex_unlock(&mutexUserData);
             clientID = i;
-            i = MAXUSERS;
-        } else {
-            errorPrint("Error: Client ID no available for user");
-            pthread_mutex_unlock(&mutexUserData);
-            clientID = -1;
+            break;
         }
     }
 
-    // TODO FEEDBACK Remove duplicate unlock!
+    if(clientID == -1) {
+        errorPrint("Error: Client ID not available for user");
+    }
+
     pthread_mutex_unlock(&mutexUserData);
     return clientID;
 }
@@ -139,42 +138,7 @@ int addUser(char *username, int socketID) {
     //Mutex Lock
     pthread_mutex_lock(&mutexUserData);
 
-    if (nameExist(username) == 0) {
-
-        if (getUserAmount() < MAXUSERS) {
-
-            int freeSlot = getFreeSlotID();
-            if (freeSlot >= 0) {
-                userdata[freeSlot].index = freeSlot;
-                strcpy(userdata[freeSlot].username, username); //TODO prüfen !laeger als 32
-                userdata[freeSlot].clientSocket = socketID;
-                userdata[freeSlot].score = 0;
-
-                userAmount++;
-
-                pthread_mutex_unlock(&mutexUserData);
-                incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
-
-                return 1;
-
-            } else {
-                pthread_mutex_unlock(&mutexUserData);
-                errorPrint("Error: No free slot");
-                return -1;
-            }
-        } else {
-            errorPrint("Error: Maximum numbers of User reached, adding Username: %s not possible!", username);
-
-            MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL,
-                                                     "Maximum numbers of User reached, adding Username not possible!");
-            if (sendMessage(socketID, &errorWarning) < 0) {
-                errorPrint("Unable to send error warning to");
-            }
-            pthread_mutex_unlock(&mutexUserData);
-            return -1;
-        }
-
-    } else {
+    if (nameExist(username) != 0) {
         errorPrint("Error: User with Username: %s already exist!", username);
 
         MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, "User with Username already exist!");
@@ -185,6 +149,38 @@ int addUser(char *username, int socketID) {
         pthread_mutex_unlock(&mutexUserData);
         return -1;
     }
+
+    if (getUserAmount() >= MAXUSERS) {
+        errorPrint("Error: Maximum numbers of User reached, adding Username: %s not possible!", username);
+
+        MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL,
+                                                 "Maximum numbers of User reached, adding Username not possible!");
+        if (sendMessage(socketID, &errorWarning) < 0) {
+            errorPrint("Unable to send error warning to");
+        }
+        pthread_mutex_unlock(&mutexUserData);
+        return -1;
+    }
+
+    int freeSlot = getFreeSlotID();
+    if (freeSlot >= 0) {
+        userdata[freeSlot].index = freeSlot;
+        strcpy(userdata[freeSlot].username, username); //TODO prüfen !laeger als 32
+        userdata[freeSlot].clientSocket = socketID;
+        userdata[freeSlot].score = 0;
+
+        userAmount++;
+
+        pthread_mutex_unlock(&mutexUserData);
+        incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
+
+        return 1;
+    } else {
+        pthread_mutex_unlock(&mutexUserData);
+        errorPrint("Error: No free slot");
+        return -1;
+    }
+
 }
 
 USER getUser(int id) {
