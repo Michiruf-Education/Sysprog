@@ -27,6 +27,9 @@
 #include "threadholder.h"
 #include "catalog.h"
 
+//------------------------------------------------------------------------------
+// Types
+//------------------------------------------------------------------------------
 #define LOCK_FILE "server.lock"
 
 typedef struct {
@@ -35,6 +38,9 @@ typedef struct {
     int port;
 } CONFIGURATION;
 
+//------------------------------------------------------------------------------
+// Method pre-declaration
+//------------------------------------------------------------------------------
 static CONFIGURATION initConfiguration();
 
 static bool parseArguments(int argc, char **argv, CONFIGURATION *config);
@@ -43,12 +49,17 @@ static void printUsage();
 
 static int createLockFile();
 
+static void closeServerSocket();
+
 static void removeLockFile();
 
 // TODO FEEDBACK Nächste Abgabe: Was passiert wenn ein Thread ein MUTEX hält?
 // -> pthread_set_cancel_state Threads nicht abbrechen lassen, wenn MUTEX gehalten wird
 // -> pthread cancel, dann join
 
+//------------------------------------------------------------------------------
+// Implementations
+//------------------------------------------------------------------------------
 int main(int argc, char **argv) {
 //    // TODO Remove program args fake
 //    char *args[8];
@@ -144,6 +155,7 @@ int main(int argc, char **argv) {
 
     // Shut the server down properly
     cancelAllServerThreads();
+    closeServerSocket();
     removeLockFile();
     infoPrint("(Shutdown server) Exiting...");
     return 0;
@@ -216,6 +228,11 @@ static int createLockFile() {
         close(fd);
         return 1; // File has been created successfully
     }
+}
+
+static void closeServerSocket() {
+    infoPrint("Closing server socket");
+    close(serverSocketFileDescriptor);
 }
 
 static void removeLockFile() {

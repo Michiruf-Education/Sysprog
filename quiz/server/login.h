@@ -9,6 +9,8 @@
 #ifndef LOGIN_H
 #define LOGIN_H
 
+int serverSocketFileDescriptor;
+
 int startLoginThread(int *port);
 
 void enableLogin();
