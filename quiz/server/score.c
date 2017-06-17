@@ -70,7 +70,7 @@ void startScoreAgent() {
 
         //Create PlayerList
         // TODO We need a mutex here, because getPlayerList may return other data than the LATER call to getUserAmount
-        // TODO Or we could not use shadow copies, but pointers (and mutex -> think of "leave case")
+        // TODO Or we could not use shadow copies, but pointers (and mutex -> think of "leave case")                                
         PLAYER_LIST player_list = getPlayerList();
         MESSAGE sendmessage = buildPlayerList(player_list.players, getUserAmount());
         //fuer alle aktiven clients

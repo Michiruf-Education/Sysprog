@@ -54,4 +54,8 @@ void printUSERDATA();
 
 void printPLAYERLIST();
 
+void lockUserData();
+
+void unlockUserData();
+
 #endif
