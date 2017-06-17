@@ -4,7 +4,7 @@
  *
  * Server
  *
- * threadholder.h: Implementierung zuer Verwaltung von Threads.
+ * threadholder.c: Implementierung zur Verwaltung von Threads.
  */
 #include <stdlib.h>
 #include <signal.h>

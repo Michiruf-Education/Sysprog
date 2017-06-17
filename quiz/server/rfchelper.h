@@ -4,7 +4,7 @@
  *
  * Server
  *
- * threadholder.h: Header zur Verwaltung von Threads
+ * rfchelper.h: Header für Broadcast-Messages.
  */
 #ifndef RFCHELPER_H
 #define RFCHELPER_H

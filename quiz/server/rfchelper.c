@@ -4,7 +4,7 @@
  *
  * Server
  *
- * threadholder.h: Implementierung zuer Verwaltung von Threads.
+ * rfchelper.c: Implementierung für Broadcast-Messages.
  */
 #include "rfchelper.h"
 #include "user.h"
