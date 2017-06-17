@@ -29,7 +29,7 @@
 #include "catalog.h"
 #include "threadholder.h"
 #include "login.h"
-#include "../common/question.h"
+#include "rfchelper.h"
 
 //------------------------------------------------------------------------------
 // Method pre-declaration
@@ -51,12 +51,6 @@ static void handleStartGame(MESSAGE *message, int userId);
 static void handleQuestionRequest(int userId);
 
 static void handleQuestionAnswered(MESSAGE *message, int userId);
-
-static void broadcastMessage(MESSAGE *message, char *text);
-
-static void broadcastMessageWithoutLock(MESSAGE *message, char *text);
-
-static void broadcastMessageExcludeOneUser(MESSAGE *message, char *text, int excludedUserId, int lockUserData);
 
 //------------------------------------------------------------------------------
 // Fields
@@ -271,40 +265,9 @@ static void handleQuestionRequest(int userId) {
     }
 
     currentQuestion++;
+    // TODO Add timer, ...
 }
 
 static void handleQuestionAnswered(MESSAGE *message, int userId) {
-    // TODO Next assignment
-}
-
-static void broadcastMessage(MESSAGE *message, char *text) {
-    broadcastMessageExcludeOneUser(message, text, -1, 1);
-}
-
-static void broadcastMessageWithoutLock(MESSAGE *message, char *text) {
-    broadcastMessageExcludeOneUser(message, text, -1, 0);
-}
-
-static void broadcastMessageExcludeOneUser(MESSAGE *message, char *text, int excludedUserId, int doLockUserData) {
-    // We need to lock user data because it may change during iteration
-    if (doLockUserData) {
-        lockUserData();
-    }
-
-    // Send broadcast
-    for (int i = 0; i < getUserAmount(); i++) {
-        USER user = getUserByIndex(i);
-        if (user.id == excludedUserId) {
-            continue;
-        }
-
-        if (sendMessage(user.clientSocket, message) < 0) {
-            errorPrint(text, user.username, user.id);
-        }
-    }
-
-    // Unlock after locking
-    if (doLockUserData) {
-        unlockUserData();
-    }
+    // TODO Next assignment (GoNext)
 }

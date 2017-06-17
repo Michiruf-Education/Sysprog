@@ -13,21 +13,23 @@
  * dieses ist. Sie müssen also in Ihrem Empfangscode immer zuerst den Header
  * (dessen Größe bekannt ist) empfangen und auswerten.
  */
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include "rfc.h"
 #include "../common/util.h"
-#include "../common/question.h"
 
-#ifndef DIRECTION_RECEIVE
-#define DIRECTION_RECEIVE 1
-#endif
-#ifndef DIRECTION_SEND
-#define DIRECTION_SEND 2
-#endif
+//------------------------------------------------------------------------------
+// Type definition
+//------------------------------------------------------------------------------
+enum {
+    DIRECTION_RECEIVE = 1,
+    DIRECTION_SEND = 2
+};
 
+//------------------------------------------------------------------------------
+// Implementations
+//------------------------------------------------------------------------------
 static void fixRFCHeader(MESSAGE *message, int direction) {
     message->header.length = direction == DIRECTION_RECEIVE ?
                              ntohs(message->header.length) :
@@ -199,7 +201,7 @@ ssize_t sendMessage(int socketId, MESSAGE *message) {
     }
 
     debugPrint("\\\\\\\\\\\\\\\\ FAILURE \\\\\\\\\\\\\\\\");
-    return -1; // TODO we could return the send size here?!
+    return -1;
 }
 
 MESSAGE buildLoginResponseOk(uint8_t rfcVersion, uint8_t maxPlayerCount, uint8_t clientId) {
@@ -230,12 +232,9 @@ MESSAGE buildCatalogChange(char catalogFileName[]) {
 
 MESSAGE buildPlayerList(PLAYER players[], int playerCount) {
     if (debugEnabled()) {
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCSimplifyInspection"
         if (sizeof(PLAYER) != 37) {
             errorPrint("Size of PLAYER struct is not 37 anymore!");
         }
-#pragma clang diagnostic pop
     }
 
     MESSAGE msg;
