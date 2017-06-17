@@ -58,7 +58,7 @@ void clearUserData() {
 }
 
 //Error: Client ID no available for user beim zweiten durchlauf
-int getUserIDbyClientSocket(int clientSocket) {
+int getUserIdbyClientSocket(int clientSocket) {
     lockUserData();
     int clientId = -1;
 
@@ -183,7 +183,7 @@ int addUser(char *username, int socketID) {
     if (freeSlot < 0) {
         errorPrint("Error: No free slot");
         unlockUserData();
-        return -3;
+        return -4;
     }
 
     userdata[freeSlot].id = freeSlot;

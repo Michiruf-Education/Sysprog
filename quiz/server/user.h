@@ -38,7 +38,7 @@ int getSocketID(int id);
 
 int getUserAmount();
 
-int getUserIDbyClientSocket(int clientSocket);
+int getUserIdbyClientSocket(int clientSocket);
 
 void clearUserData();
 
