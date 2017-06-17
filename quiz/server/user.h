@@ -16,7 +16,7 @@
 //TODO parameter umbennen/anpassen
 
 typedef struct user {
-    int index; // TODO rename to ID
+    int id;
     char username[USERNAMELENGTH]; //sicherstellen das der Username mit \0 Terminiert wird
     unsigned int score;
     int clientSocket; //Socket-Deskriptor
@@ -32,19 +32,17 @@ void removeUserOverID(int id);
 
 USER getUser(int id);
 
-USER getUserByIndex(int index);
+USER getUserByIndex(int id);
 
 int getSocketID(int id);
 
 int getUserAmount();
 
-int getClientIDforUser(int clientSocket);
+int getUserIDbyClientSocket(int clientSocket);
 
 void clearUserData();
 
 int nameExist(char *username);
-
-void updateRanking();
 
 int isGameLeader(int id);
 

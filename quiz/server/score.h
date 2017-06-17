@@ -15,6 +15,9 @@ int startScoreAgentThread();
 //initialize Semaphore
 int initSemaphore();
 
+//update Ranking
+void updateRanking();
+
 //increments (unlocks) Semaphore
 int incrementScoreAgentSemaphore();
 

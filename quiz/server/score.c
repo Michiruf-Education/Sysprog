@@ -58,6 +58,14 @@ int startScoreAgentThread() {
     return 0;
 }
 
+
+
+//TODO updateRanking
+void updateRanking() {
+    //update Playerliste erstellen, ggf. Rangliste neu berechnen
+
+}
+
 void startScoreAgent() {
     infoPrint("Starting ScoreAgent...");
 
@@ -69,8 +77,7 @@ void startScoreAgent() {
         //SendPlayerListMSG
 
         //Create PlayerList
-        // TODO We need a mutex here, because getPlayerList may return other data than the LATER call to getUserAmount
-        // TODO Or we could not use shadow copies, but pointers (and mutex -> think of "leave case")                                
+        void lockUserData();
         PLAYER_LIST player_list = getPlayerList();
         MESSAGE sendmessage = buildPlayerList(player_list.players, getUserAmount());
         //fuer alle aktiven clients
@@ -81,6 +88,7 @@ void startScoreAgent() {
                 errorPrint("Error: ScoreAgent Send Message PlayerList");
             }
         }
+        void unlockUserData();
     }
 
 

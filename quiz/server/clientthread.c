@@ -144,20 +144,20 @@ static void handleConnectionTimeout(int userId) {
 
     if (isGameLeader(userId) >= 0 && currentGameState == GAME_STATE_PREPARATION) {
         for (int i = 0; i < getUserAmount(); i++) { // TODO FEEDBACK Müsste synchronisiert werden! (falls ein user disconnected)
-            if (getUserByIndex(i).index == userId) {
+            if (getUserByIndex(i).id == userId) {
                 continue;
             }
             MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, "Game leader has left the game.");
             if (sendMessage(getUserByIndex(i).clientSocket, &errorWarning) < 0) {
                 errorPrint("Unable to send error warning to %s (%d)!",
                            getUserByIndex(i).username,
-                           getUserByIndex(i).index);
+                           getUserByIndex(i).id);
             }
         }
         currentGameState = GAME_STATE_ABORTED;
     } else if (getUserAmount() < 2 && currentGameState == GAME_STATE_GAME_RUNNING) {
         for (int i = 0; i < getUserAmount(); i++) {
-            if (getUserByIndex(i).index == userId) {
+            if (getUserByIndex(i).id == userId) {
                 continue;
             }
             MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL,
@@ -165,7 +165,7 @@ static void handleConnectionTimeout(int userId) {
             if (sendMessage(getUserByIndex(i).clientSocket, &errorWarning) < 0) {
                 errorPrint("Unable to send error warning to %s (%d)!",
                            getUserByIndex(i).username,
-                           getUserByIndex(i).index);
+                           getUserByIndex(i).id);
             }
         }
         currentGameState = GAME_STATE_ABORTED;
@@ -188,7 +188,7 @@ static void handleCatalogRequest(int userId) {
         if (sendMessage(getUser(userId).clientSocket, &catalogResponse) < 0) {
             errorPrint("Unable to send catalog response to %s (%d)!",
                        getUser(userId).username,
-                       getUser(userId).index);
+                       getUser(userId).id);
         }
 
         // We need to send a catalog change after the catalog request for new user to get the
@@ -200,7 +200,7 @@ static void handleCatalogRequest(int userId) {
             if (sendMessage(getUser(userId).clientSocket, &catalogChange) < 0) {
                 errorPrint("Unable to send catalog change (after catalog response) to %s (%d)!",
                            getUser(userId).username,
-                           getUser(userId).index);
+                           getUser(userId).id);
             }
         }
     }
@@ -214,7 +214,7 @@ static void handleCatalogChange(MESSAGE message) {
         if (sendMessage(getUserByIndex(i).clientSocket, &catalogChangeResponse) < 0) {
             errorPrint("Unable to send catalog change response to user %s (%d)!",
                        getUserByIndex(i).username,
-                       getUserByIndex(i).index);
+                       getUserByIndex(i).id);
         }
     }
 }
@@ -227,7 +227,7 @@ static void handleStartGame(MESSAGE message, int userId) {
         if (sendMessage(getUser(userId).clientSocket, &errorWarning) < 0) {
             errorPrint("Unable to send error warning to %s (%d)!",
                        getUser(userId).username,
-                       getUser(userId).index);
+                       getUser(userId).id);
         }
         return;
     }
@@ -240,7 +240,7 @@ static void handleStartGame(MESSAGE message, int userId) {
         if (sendMessage(getUserByIndex(i).clientSocket, &startGameResponse) < 0) {
             errorPrint("Unable to send start game response to user %s (%d)!",
                        getUserByIndex(i).username,
-                       getUserByIndex(i).index);
+                       getUserByIndex(i).id);
         }
     }
 

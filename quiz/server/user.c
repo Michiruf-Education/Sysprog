@@ -32,7 +32,7 @@ static unsigned int userAmount = 0; //Aktuelle anzahl angemeldeter User
 void clearUserRow(int id) {
     lockUserData();
 
-    userdata[id].index = -1;
+    userdata[id].id = -1;
     userdata[id].username[0] = '\0';
     userdata[id].score = 0;
     userdata[id].clientSocket = -1;
@@ -49,7 +49,7 @@ void unlockUserData(){
     pthread_mutex_unlock(&mutexUserData);
 }
 
-//setzt user.index=-1
+//setzt user.id=-1
 void clearUserData() {
     for (int i = 0; i < MAXUSERS; i++) {
         clearUserRow(i);
@@ -58,20 +58,20 @@ void clearUserData() {
 }
 
 //Error: Client ID no available for user beim zweiten durchlauf
-int getClientIDforUser(int clientSocketID) {
-    int clientID = -1;
+int getUserIDbyClientSocket(int clientSocket) {
+    int id = -1;
     pthread_mutex_lock(&mutexUserData);    
     for (int i = 0; i < MAXUSERS; i++) {
-        if (userdata[i].clientSocket == clientSocketID) {
-            clientID = i;
+        if (userdata[i].clientSocket == clientSocket) {
+            id = i;
             i = MAXUSERS;
         } else {
             errorPrint("Error: Client ID no available for user");
-            clientID = -1;
+            id = -1;
         }
     }    
     pthread_mutex_unlock(&mutexUserData);
-    return clientID;
+    return id;
 }
 
 int initMutex() {
@@ -95,7 +95,6 @@ int getUserAmount() {
 }
 
 PLAYER_LIST getPlayerList() {
-    pthread_mutex_lock(&mutexUserData);
     PLAYER_LIST allActivePlayers;
 
     if (getUserAmount() > 0) {
@@ -105,10 +104,10 @@ PLAYER_LIST getPlayerList() {
             for (int j = nextSlot; j < MAXUSERS; j++) {
                 PLAYER activePlayer;
 
-                if (userdata[j].index != -1) {
+                if (userdata[j].id != -1) {
                     memcpy(activePlayer.name, userdata[j].username, USERNAMELENGTH);
                     activePlayer.score = userdata[j].score;
-                    activePlayer.id = userdata[j].index;
+                    activePlayer.id = userdata[j].id;
 
                     allActivePlayers.players[i] = activePlayer;
                     nextSlot = j;
@@ -118,7 +117,6 @@ PLAYER_LIST getPlayerList() {
             }
         }
     }
-    pthread_mutex_unlock(&mutexUserData);
 
     return allActivePlayers;
 }
@@ -127,7 +125,7 @@ PLAYER_LIST getPlayerList() {
 //Bei fehler -1
 static int getFreeSlotID() {
     for (int i = 0; i < MAXUSERS; i++) {
-        if (userdata[i].index == -1) {
+        if (userdata[i].id == -1) {
             return i;
         }
     }
@@ -138,6 +136,12 @@ static int getFreeSlotID() {
 //Bei Fehler => -1
 int addUser(char *username, int socketID) {
     //putchar('\n');
+    int len = strlen(username);
+
+    if(len >32){
+        errorPrint("Username to long!");
+        return -1;
+    }
 
     //Mutex Lock
     pthread_mutex_lock(&mutexUserData);
@@ -148,8 +152,8 @@ int addUser(char *username, int socketID) {
 
             int freeSlot = getFreeSlotID();
             if (freeSlot >= 0) {
-                userdata[freeSlot].index = freeSlot;
-                strcpy(userdata[freeSlot].username, username); //TODO prüfen !laeger als 32
+                userdata[freeSlot].id = freeSlot;
+                strcpy(userdata[freeSlot].username, username);
                 userdata[freeSlot].clientSocket = socketID;
                 userdata[freeSlot].score = 0;
 
@@ -194,20 +198,20 @@ USER getUser(int id) {
     return userdata[id];
 }
 
-USER getUserByIndex(int index) {
+USER getUserByIndex(int id) {
     // Implementation may be irritating, but we should implement this as we are able to
-    // separate the index and the id in the future.
+    // separate the id and the id in the future.
     // Doing so we could handle the disconnect of the leader (id: 0) to still get the first connected
-    // user by index.
+    // user by id.
     for (int i = 0; i < MAXUSERS; i++) {
-        if (getUser(i).index == -1) {
-            index++;
+        if (getUser(i).id == -1) {
+            id++;
         }
-        if (i >= index) {
+        if (i >= id) {
             break;
         }
     }
-    return getUser(index);
+    return getUser(id);
 }
 
 int getSocketID(int id) {
@@ -237,20 +241,13 @@ void removeUserOverSocketID(int socketID) {
     }
 }
 
-//loescht ein User anhand des index/clientID
+//loescht ein User anhand des id/clientID
 void removeUserOverID(int id) {
     clearUserRow(id);
     incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
 }
 
 
-//TODO updateRanking
-//TODO FEEDBACK Move into score
-void updateRanking() {
-    pthread_mutex_lock(&mutexUserData);
-    //update Playerliste erstellen, ggf. Rangliste neu berechnen
-    pthread_mutex_unlock(&mutexUserData);
-}
 
 //0 => ja
 //-1=> nein
@@ -268,7 +265,7 @@ void printUSERDATA() {
     infoPrint("\n\n");
     infoPrint("/---------------------------------------------------------------\\\n");
     for (int i = 0; i < MAXUSERS; i++) {
-        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|\n", userdata[i].index, userdata[i].username,
+        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|\n", userdata[i].id, userdata[i].username,
                   userdata[i].score, userdata[i].clientSocket);
     }
     infoPrint("\\---------------------------------------------------------------/ \n");
