@@ -13,6 +13,10 @@
 #include <unistd.h>
 #include <memory.h>
 #include <stdlib.h>
+#include <sys/shm.h>
+#include <sys/mman.h>
+#include <sys/fcntl.h>
+#include <stdio.h>
 #include "../common/server_loader_protocol.h"
 #include "../common/util.h"
 #include "catalog.h"
@@ -74,21 +78,27 @@ int createCatalogChildProcess(char *catalogPath, char *loaderPath) {
 
 int fetchBrowseCatalogs() {
     // Send browse command
-    if (write(pipeInFD[1], CMD_BROWSE, sizeof(CMD_BROWSE)) != sizeof(CMD_BROWSE)) {
-        errorPrint("Error writing to pipe.");
+    if (write(pipeInFD[1], BROWSE_CMD, sizeof(BROWSE_CMD)) != sizeof(BROWSE_CMD)) {
+        errorPrint("Error sending browse command to pipe.");
         return -1;
     }
-    if (write(pipeInFD[1], CMD_SEND, sizeof(CMD_SEND)) != sizeof(CMD_SEND)) {
-        errorPrint("Error writing to pipe.");
+    if (write(pipeInFD[1], SEND_CMD, sizeof(SEND_CMD)) != sizeof(SEND_CMD)) {
+        errorPrint("Error sending send (%s) command to pipe.", SEND_CMD);
         return -2;
     }
 
     // Get the result
     char *readBuffer;
     for (int i = 0; (readBuffer = readLine(pipeOutFD[0])) != NULL; i++) {
+        // Cancel when the end is reached
         if (*readBuffer == '\0') {
             break;
         }
+
+        // Add null termination
+        strcat(readBuffer, "\0");
+
+        // Filter files that do not contain catalogs and add them
         if (strstr(readBuffer, CATALOG_FILE_EXTENSION) != NULL) {
             memcpy(catalogs[i].name, readBuffer, strlen(readBuffer));
             catalogCount++;
@@ -104,7 +114,33 @@ int fetchBrowseCatalogs() {
 }
 
 int loadCatalog(char catalogFile[]) {
-    // TODO Later
-    errorPrint("loadCatalog() not yet implemented.");
+    // Prepare load command
+    char *loadCmd = malloc(sizeof(LOAD_CMD_PREFIX) + strlen(catalogFile) * sizeof(char));
+    sprintf(loadCmd, "%s%s", LOAD_CMD_PREFIX, catalogFile);
+
+    // Send load cmd to load shared memory
+    infoPrint("Sending \"%s\" command to loader.", loadCmd);
+    if (write(pipeInFD[1], loadCmd, sizeof(loadCmd)) != sizeof(loadCmd)) {
+        errorPrint("Error sending load command to pipe.");
+        return -1;
+    }
+    if (write(pipeInFD[1], SEND_CMD, sizeof(SEND_CMD)) != sizeof(SEND_CMD)) {
+        errorPrint("Error sending send (%s) command to pipe.", SEND_CMD);
+        return -2;
+    }
+
+
+    // Open shared memory handle
+    int handle = shm_open(SHMEM_NAME, O_RDONLY , 0600);
+    if (handle < 0) {
+        errorPrint("Could not open shared memory (%s).", SHMEM_NAME);
+    }
+
+    // Delete the shared memory for future uses
+    int deleteShMem = shm_unlink(SHMEM_NAME);
+    if (deleteShMem < 0) {
+        errorPrint("Could not delete shared memory.");
+    }
+
     return -1;
 }
