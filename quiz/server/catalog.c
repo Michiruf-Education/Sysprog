@@ -20,6 +20,7 @@
 #include "../common/server_loader_protocol.h"
 #include "../common/util.h"
 #include "catalog.h"
+#include "../common/question.h"
 
 static int pipeInFD[2];
 static int pipeOutFD[2];
@@ -114,26 +115,37 @@ int fetchBrowseCatalogs() {
 }
 
 int loadCatalog(char catalogFile[]) {
-    // Prepare load command
-    char *loadCmd = malloc(sizeof(LOAD_CMD_PREFIX) + strlen(catalogFile) * sizeof(char));
-    sprintf(loadCmd, "%s%s", LOAD_CMD_PREFIX, catalogFile);
+    // NOTE
+    // Workaround, because the loaded has a read or write buffer in "queue".
+    // Without this we cannot read or write correctly!!!
+    char *clear = "\n";
+    write(pipeInFD[1], clear, strlen(clear));
+
 
     // Send load cmd to load shared memory
-    infoPrint("Sending \"%s\" command to loader.", loadCmd);
-    if (write(pipeInFD[1], loadCmd, sizeof(loadCmd)) != sizeof(loadCmd)) {
+    size_t cmdLength = strlen(LOAD_CMD_PREFIX) + strlen(catalogFile) + strlen(SEND_CMD);
+    char cmd[cmdLength];
+    strcat(cmd, LOAD_CMD_PREFIX);
+    strcat(cmd, catalogFile);
+    infoPrint("Sending \"%s\" command to loader.", cmd);
+    strcat(cmd, SEND_CMD);
+    if (write(pipeInFD[1], cmd, strlen(cmd)) != strlen(cmd)) {
         errorPrint("Error sending load command to pipe.");
         return -1;
     }
-    if (write(pipeInFD[1], SEND_CMD, sizeof(SEND_CMD)) != sizeof(SEND_CMD)) {
-        errorPrint("Error sending send (%s) command to pipe.", SEND_CMD);
-        return -2;
-    }
 
+    // Read response from loader
+    char *readBuffer = readLine(pipeOutFD[0]);
+    infoPrint("Loader response: %s", readBuffer);
+
+    // TODO parse response...
+    // TODO HERE I AM
 
     // Open shared memory handle
-    int handle = shm_open(SHMEM_NAME, O_RDONLY , 0600);
+    int handle = shm_open(SHMEM_NAME, O_RDONLY, 0600);
     if (handle < 0) {
         errorPrint("Could not open shared memory (%s).", SHMEM_NAME);
+        return -1;
     }
 
     // Delete the shared memory for future uses
@@ -142,5 +154,5 @@ int loadCatalog(char catalogFile[]) {
         errorPrint("Could not delete shared memory.");
     }
 
-    return -1;
+    return 0;
 }
