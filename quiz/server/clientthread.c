@@ -79,7 +79,7 @@ static int finishedPlayerCount = 0;
 //------------------------------------------------------------------------------
 // Implementations
 //------------------------------------------------------------------------------
-int startClientThread(int userId) {
+int initializeClientThreadModule() {
     // Initialize mutexes
     int mutexResult = pthread_mutex_init(&selectedCatalogNameMutex, NULL);
     if (mutexResult < 0) {
@@ -87,6 +87,10 @@ int startClientThread(int userId) {
         return mutexResult;
     }
 
+    return 0;
+}
+
+int startClientThread(int userId) {
     // Create thread
     int err = pthread_create(&clientThreadId, NULL, (void *) &clientThread, &userId);
     registerThread(clientThreadId);

@@ -118,9 +118,17 @@ int main(int argc, char **argv) {
         infoPrint("Created lock file: %s", LOCK_FILE);
     }
 
-    // Start the application
+    // Error indicator
     int hasError = 0;
-    if (createCatalogChildProcess(config.catalogPath, config.loaderPath) < 0) {
+
+    // Initialize modules
+    if (initializeClientThreadModule() < 0) {
+        errorPrint("Could not initialize");
+        hasError = 1;
+    }
+
+    // Start the application
+    if (!hasError && createCatalogChildProcess(config.catalogPath, config.loaderPath) < 0) {
         errorPrint("Cannot create catalog child process!");
         hasError = 1;
     }
