@@ -61,6 +61,6 @@ void lockUserData();
 void unlockUserData();
 
 //Calc score for the user given, question timeout, needed time to answer, and clientSocket
-void calcScoreForUserByID(int timeout, int neededtime, int id);
+void calcScoreForUserByID(unsigned long timeout, unsigned long neededtime, int id);
 
 #endif
