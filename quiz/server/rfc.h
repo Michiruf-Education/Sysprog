@@ -84,6 +84,19 @@ typedef struct {
 } START_GAME;
 
 typedef struct {
+    uint8_t selected;
+} QUESTION_ANSWERED;
+
+typedef struct {
+    uint8_t correct;
+} QUESTION_RESULT;
+
+typedef struct {
+    uint8_t rank;
+    uint32_t score;
+} GAME_OVER;
+
+typedef struct {
     uint8_t subtype;
     char message[RFC_ERROR_WARNING_MAX_LENGTH];
 } ERROR_WARNING;
@@ -108,9 +121,9 @@ typedef union {
     START_GAME startGame;
     //QUESTION_REQUEST questionRequest; // Is EMPTY -> useless
     QuestionMessage question;
-    // TODO QUESTION_ANSWERED questionAnswered;
-    // TODO QUESTION_RESULT questionResult;
-    // TODO GAME_OVER gameOver;
+    QUESTION_ANSWERED questionAnswered;
+    QUESTION_RESULT questionResult;
+    GAME_OVER gameOver;
     ERROR_WARNING errorWarning;
 } BODY;
 
@@ -143,12 +156,9 @@ MESSAGE buildQuestion(char question[], char answers[][ANSWER_SIZE], uint8_t time
 
 MESSAGE buildQuestionEmpty(); // For easy access (buildQuestion)
 
-/*
- // TODO
-void buildQuestionResult(...);
+MESSAGE buildQuestionResult(uint8_t correct, int inTime);
 
-void buildGameOver(...);
-*/
+MESSAGE buildGameOver(uint8_t rank, uint32_t score);
 
 MESSAGE buildErrorWarning(uint8_t subtype, char message[]);
 

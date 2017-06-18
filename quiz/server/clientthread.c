@@ -30,6 +30,8 @@
 #include "threadholder.h"
 #include "login.h"
 #include "rfchelper.h"
+#include "usertimer.h"
+#include "../common/question.h"
 
 //------------------------------------------------------------------------------
 // Method pre-declaration
@@ -161,8 +163,21 @@ static int isUserAuthorizedForMessageType(int messageType, int userId) {
 }
 
 static void checkAndHandleAllPlayersFinished() {
-    if(finishedPlayerCount == getUserAmount()) {
-        // TODO Send game over message
+    if (finishedPlayerCount == getUserAmount()) {
+        infoPrint("Game over!");
+        lockUserData();
+        for (int i = 0; i < getUserAmount(); i++) {
+            USER user = getUserByIndex(i);
+            uint8_t rank = (uint8_t) getAndCalculateRankByUserId(user.id);
+
+            MESSAGE gameOver = buildGameOver(rank, user.score);
+            if (sendMessage(user.clientSocket, &gameOver) < 0) {
+                errorPrint("Unable to send game over to %s (%d)",
+                           user.username,
+                           user.id);
+            }
+        }
+        unlockUserData();
     }
 }
 
@@ -267,19 +282,52 @@ static void handleQuestionRequest(int userId) {
     } else {
         questionResponse = buildQuestionEmpty();
         finishedPlayerCount++;
-        checkAndHandleAllPlayersFinished();
+        checkAndHandleAllPlayersFinished(); // TODO should we do this also at disconnect? -> yes we should!
     }
+
+    // Project description tells to start the timer before we send the question
+    startTimer(userId);
 
     if (sendMessage(getUser(userId).clientSocket, &questionResponse) < 0) {
         errorPrint("Unable to send question to %s (%d)!",
                    getUser(userId).username,
                    getUser(userId).id);
     }
-
-    currentQuestion[userId]++;
-    // TODO Add timer, ...
 }
 
 static void handleQuestionAnswered(MESSAGE *message, int userId) {
-    // TODO Next assignment (GoNext)
+    if (currentQuestion[userId] >= getLoadedQuestionCount()) {
+        errorPrint("%s (%d) requested question out of bounds (#%d out of %d). !",
+                   getUser(userId).username,
+                   getUser(userId).id,
+                   currentQuestion[userId],
+                   getLoadedQuestionCount());
+        return;
+    }
+
+    Question question = getLoadedQuestions()[currentQuestion[userId]];
+    long timeout = (long) question.timeout * 1000; // Convert to milliseconds
+    long durationMillis = getCurrentTimerDurationMillis(userId);
+    int inTime = durationMillis <= timeout;
+
+    debugPrint("Answer timeout:\t%li", timeout);
+    debugPrint("Answer duration:\t%li", durationMillis);
+    debugPrint("Answer inTime:\t%s", inTime ? "yes" : "no");
+
+    // Calculate points if answer is correct
+    if (message->body.questionAnswered.selected == question.correct && inTime) {
+        calcScoreForUserByID(timeout, durationMillis, userId);
+        notifyScoreAgent();
+    }
+
+    // Send question result to client
+    MESSAGE questionResult = buildQuestionResult(question.correct, inTime);
+    if (sendMessage(getUser(userId).clientSocket, &questionResult) < 0) {
+        errorPrint("Unable to send question result to %s (%d)!",
+                   getUser(userId).username,
+                   getUser(userId).id);
+    }
+
+    // Go to next question
+    currentQuestion[userId]++;
 }

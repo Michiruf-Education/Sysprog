@@ -159,6 +159,10 @@ int validateMessage(MESSAGE *message) {
         case TYPE_QUESTION:
             break;
         case TYPE_QUESTION_ANSWERED:
+            // The first 4 bits of the number must be 0
+            if ((message->body.questionAnswered.selected & (uint8_t) 0xF0) != 0) {
+                return -1;
+            }
             break;
         case TYPE_QUESTION_RESULT:
             break;
@@ -266,6 +270,27 @@ MESSAGE buildQuestionEmpty() {
     MESSAGE msg;
     msg.header.type = TYPE_QUESTION;
     msg.header.length = (uint16_t) 0;
+    return msg;
+}
+
+MESSAGE buildQuestionResult(uint8_t correct, int inTime) {
+    MESSAGE msg;
+    msg.header.type = TYPE_QUESTION_RESULT;
+    msg.header.length = (uint16_t) 1;
+    // If the answer is not in time, the first bit of the uint8_t must be 1
+    if (!inTime) {
+        correct |= (uint8_t) 0x80;
+    }
+    msg.body.questionResult.correct = correct;
+    return msg;
+}
+
+MESSAGE buildGameOver(uint8_t rank, uint32_t score) {
+    MESSAGE msg;
+    msg.header.type = TYPE_GAME_OVER;
+    msg.header.length = (uint16_t) 5;
+    msg.body.gameOver.rank = rank;
+    msg.body.gameOver.score = score;
     return msg;
 }
 
