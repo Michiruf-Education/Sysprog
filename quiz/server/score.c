@@ -58,15 +58,6 @@ int startScoreAgentThread() {
     return 0;
 }
 
-
-//TODO updateRanking
-void updateRanking() {
-    //update Playerliste erstellen, ggf. Rangliste neu berechnen
-    //Player nach score sortieren
-    //printf("\n=====> here\n");
-
-}
-
 void startScoreAgent() {
     infoPrint("Starting ScoreAgent...");
 
@@ -74,8 +65,6 @@ void startScoreAgent() {
 
         //Waits until semaphor is incremented/unlocked and decrements (locks) it again
         sem_wait(&scoreAgentTrigger);
-        //updateRanking();
-
 
         //Create PlayerList
         void lockUserData();

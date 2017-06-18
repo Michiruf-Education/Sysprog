@@ -118,7 +118,6 @@ PLAYER_LIST getPlayerListSortedByScore() {
         }
     }
 
-
     return allActivePlayers;
 }
 
