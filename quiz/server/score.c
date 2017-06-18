@@ -34,7 +34,7 @@ int initSemaphore() {
     return sem_init(&scoreAgentTrigger, 0, 0);
 }
 
-int incrementScoreAgentSemaphore() {
+int notifyScoreAgent() {
     return sem_post(&scoreAgentTrigger);
 }
 

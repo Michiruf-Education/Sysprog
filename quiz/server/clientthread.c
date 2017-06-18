@@ -249,7 +249,7 @@ static void handleStartGame(MESSAGE message, int userId) {
     broadcastMessageWithoutLock(&startGameResponse, "Unable to send start game response to user %s (%d)!");
 
     unlockUserData();
-    incrementScoreAgentSemaphore();
+    notifyScoreAgent();
 }
 
 static void handleQuestionRequest(MESSAGE message, int userId) {
