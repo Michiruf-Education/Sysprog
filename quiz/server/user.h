@@ -50,6 +50,8 @@ PLAYER_LIST getPlayerList();
 
 PLAYER_LIST getPlayerListSortedByScore();
 
+int getAndCalculateRankByUserId(int id);
+
 void printUSERDATA();
 
 void printPlayerList();

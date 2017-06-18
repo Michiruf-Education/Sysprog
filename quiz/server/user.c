@@ -121,6 +121,24 @@ PLAYER_LIST getPlayerListSortedByScore() {
     return allActivePlayers;
 }
 
+//Returns Rank of user 1-4
+int getAndCalculateRankByUserId(int id){
+    int rank=-1;
+    lockUserData();
+    PLAYER_LIST sortedPlayerList = getPlayerListSortedByScore();
+    if (getUserAmount() > 0) {
+        for (int i = 0; i < getUserAmount(); i++) {
+            if(sortedPlayerList.players[i].id == id){
+                rank = i+1;
+                break;
+            }
+        }
+    }
+    unlockUserData();
+
+    return rank;
+}
+
 
 PLAYER_LIST getPlayerList() {
     PLAYER_LIST allActivePlayers;
@@ -300,6 +318,8 @@ void calcScoreForUserByID(long timeout, long neededtime, int id) {
     unlockUserData();
 
 }
+
+
 
 //DEBUG print UserData
 void printUSERDATA() {
