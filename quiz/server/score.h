@@ -21,6 +21,4 @@ void updateRanking();
 //increments (unlocks) Semaphore
 int incrementScoreAgentSemaphore(); // TODO Rename notifyScoreAgent!
 
-//Calc score for the user given, question timeout, needed time to answer, and clientSocket
-void calcScoreForUserByID(int timeout, int neededtime, int id);
 #endif

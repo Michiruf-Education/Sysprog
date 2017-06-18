@@ -48,14 +48,19 @@ int isGameLeader(int id);
 
 PLAYER_LIST getPlayerList();
 
-PLAYER_LIST getPlayerListOrderedByScore();
+PLAYER_LIST getPlayerListSortedByScore();
 
 void printUSERDATA();
 
-void printPLAYERLIST();
+void printPlayerList();
+
+void printPlayerListSortedByScore();
 
 void lockUserData();
 
 void unlockUserData();
+
+//Calc score for the user given, question timeout, needed time to answer, and clientSocket
+void calcScoreForUserByID(int timeout, int neededtime, int id);
 
 #endif

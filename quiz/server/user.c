@@ -21,6 +21,7 @@
 #include "../common/util.h"
 #include "vardefine.h"
 #include "score.h"
+#include "rfc.h"
 
 //pthread_t
 pthread_mutex_t mutexUserData;
@@ -97,13 +98,30 @@ int getUserAmount() {
     return userAmount;
 }
 
-PLAYER_LIST getPlayerListOrderedByScore() {
-    PLAYER_LIST allActivePlayers=getPlayerList();
+//getPlayerList Sorted by Score
+PLAYER_LIST getPlayerListSortedByScore() {
+    PLAYER_LIST allActivePlayers = getPlayerList();
+    PLAYER tmpforSwap;
 
+    //Use Bubble Sort for Sorting PlayerList
+    if (getUserAmount() > 0) {
+        for (int i = 0; i < getUserAmount() - 1; i++) {
+            for (int j = 0; j < getUserAmount() - 1; j++) {
+
+                if (allActivePlayers.players[i].score < allActivePlayers.players[j + 1].score) {
+                    //Swap
+                    tmpforSwap = allActivePlayers.players[j];
+                    allActivePlayers.players[j] = allActivePlayers.players[j + 1];
+                    allActivePlayers.players[j + 1] = tmpforSwap;
+                }
+            }
+        }
+    }
 
 
     return allActivePlayers;
 }
+
 
 PLAYER_LIST getPlayerList() {
     PLAYER_LIST allActivePlayers;
@@ -261,6 +279,23 @@ int isGameLeader(int id) {
 
 }
 
+//Calc score for the user given, question timeout, needed time to answer, and clientSocket
+void calcScoreForUserByID(int timeout, int neededtime, int id) {
+
+    lockUserData();
+
+    int scoreForCurrentQuestion = 0;
+    scoreForCurrentQuestion = (timeout - neededtime) * 100; //TODO eventuell berechnung der Punktevergabe verbessern
+
+    for (int i = 0; i < MAXUSERS; i++) {
+        if (userdata[i].id == id) {
+            userdata[i].score += scoreForCurrentQuestion;
+        }
+    }
+    unlockUserData();
+
+}
+
 //DEBUG print UserData
 void printUSERDATA() {
     infoPrint("\n\n");
@@ -272,7 +307,7 @@ void printUSERDATA() {
     infoPrint("\\---------------------------------------------------------------/ \n");
 }
 
-void printPLAYERLIST() {
+void printPlayerList() {
     PLAYER_LIST tmpPlayerLst = getPlayerList();
 
     infoPrint("\n\n");
@@ -284,4 +319,18 @@ void printPLAYERLIST() {
     }
     infoPrint("\\---------------------------------------------------------------/ \n");
 }
+
+void printPlayerListSortedByScore() {
+    PLAYER_LIST tmpPlayerLst = getPlayerListSortedByScore();
+
+    infoPrint("\n\n");
+    infoPrint("/----------------PLAYER-LIST-sorted by Score---------------------\\\n");
+    for (int i = 0; i < getUserAmount(); i++) {
+        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t|\n", tmpPlayerLst.players[i].id,
+                  tmpPlayerLst.players[i].name,
+                  tmpPlayerLst.players[i].score);
+    }
+    infoPrint("\\---------------------------------------------------------------/ \n");
+}
+
 
