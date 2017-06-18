@@ -44,6 +44,8 @@ static int isUserAuthorizedForMessageType(int messageType, int userId);
 
 static void checkAndHandleAllPlayersFinished();
 
+static void checkAndHandleGameEnd();
+
 static void handleConnectionTimeout(int userId);
 
 static void handleCatalogRequest(int userId);
@@ -181,6 +183,12 @@ static void checkAndHandleAllPlayersFinished() {
         }
         unlockUserData();
 
+        checkAndHandleGameEnd();
+    }
+}
+
+static void checkAndHandleGameEnd() {
+    if (currentGameState == GAME_STATE_FINISHED || currentGameState == GAME_STATE_ABORTED) {
         // Cancel main thread so the server gets shut down
         cancelMainThread();
     }
@@ -196,6 +204,7 @@ static void handleConnectionTimeout(int userId) {
         broadcastMessageExcludeOneUser(&errorWarning, "Unable to send error warning to %s (%d)!", userId, 1);
 
         currentGameState = GAME_STATE_ABORTED;
+        checkAndHandleGameEnd();
     } else if (getUserAmount() - 1 < MINUSERS && currentGameState == GAME_STATE_GAME_RUNNING) {
         char *errorTextPlain = "Game cancelled because there are less than %d players left.";
         char *errorText = malloc(sizeof(errorTextPlain) + sizeof(MINUSERS));
@@ -205,6 +214,7 @@ static void handleConnectionTimeout(int userId) {
         broadcastMessageExcludeOneUser(&errorWarning, "Unable to send error warning to %s (%d)!", userId, 1);
 
         currentGameState = GAME_STATE_ABORTED;
+        checkAndHandleGameEnd();
     }
 
     // Just to be safe call the close of the socket (if it is not closed yet)
@@ -271,7 +281,11 @@ static void handleStartGame(MESSAGE *message, int userId) {
     }
 
     disableLogin();
-    loadCatalog(message->body.startGame.catalog);
+    if (loadCatalog(message->body.startGame.catalog) < 0) {
+        currentGameState = GAME_STATE_ABORTED;
+        checkAndHandleGameEnd();
+        return;
+    }
     currentGameState = GAME_STATE_GAME_RUNNING;
 
     MESSAGE startGameResponse = buildStartGame(message->body.startGame.catalog);
