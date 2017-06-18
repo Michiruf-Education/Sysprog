@@ -9,6 +9,8 @@
 #ifndef CATALOG_H
 #define CATALOG_H
 
+#include "../common/question.h"
+
 #define SEND_CMD "\n"
 #define CATALOG_FILENAME_SIZE 32
 #define CATALOG_FILE_EXTENSION ".cat"
@@ -28,6 +30,8 @@ int fetchBrowseCatalogs();
 
 int loadCatalog(char catalogFile[]);
 
-// TODO More functions for catalog bla and questions bla
+int getLoadedQuestionCount();
+
+Question* getLoadedQuestions();
 
 #endif

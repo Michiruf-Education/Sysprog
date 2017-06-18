@@ -29,6 +29,9 @@
 #include "catalog.h"
 #include "threadholder.h"
 #include "login.h"
+#include "rfchelper.h"
+#include "usertimer.h"
+#include "../common/question.h"
 
 //------------------------------------------------------------------------------
 // Method pre-declaration
@@ -39,23 +42,21 @@ static int isMessageTypeAllowedInCurrentGameState(int gameState, int messageType
 
 static int isUserAuthorizedForMessageType(int messageType, int userId);
 
+static void checkAndHandleAllPlayersFinished();
+
+static void checkAndHandleGameEnd();
+
 static void handleConnectionTimeout(int userId);
 
 static void handleCatalogRequest(int userId);
 
-static void handleCatalogChange(MESSAGE message);
+static void handleCatalogChange(MESSAGE *message);
 
-static void handleStartGame(MESSAGE message, int userId);
+static void handleStartGame(MESSAGE *message, int userId);
 
-static void handleQuestionRequest(MESSAGE message, int userId);
+static void handleQuestionRequest(int userId);
 
-static void handleQuestionAnswered(MESSAGE message, int userId);
-
-static void broadcastMessage(MESSAGE *message, char *text);
-
-static void broadcastMessageWithoutLock(MESSAGE *message, char *text);
-
-static void broadcastMessageExcludeOneUser(MESSAGE *message, char *text, int excludedUserId, int lockUserData);
+static void handleQuestionAnswered(MESSAGE *message, int userId);
 
 //------------------------------------------------------------------------------
 // Fields
@@ -66,6 +67,10 @@ static pthread_t clientThreadId = 0;
 
 static char *selectedCatalogName = NULL;
 static pthread_mutex_t selectedCatalogNameMutex;
+
+static int currentQuestion[MAXUSERS] = {0};
+
+static int finishedPlayerCount = 0;
 
 //------------------------------------------------------------------------------
 // Implementations
@@ -119,16 +124,16 @@ void clientThread(int *userIdPtr) { // TODO FEEDBACK void pointers!
                         handleCatalogRequest(userId);
                         break;
                     case TYPE_CATALOG_CHANGE:
-                        handleCatalogChange(message);
+                        handleCatalogChange(&message);
                         break;
                     case TYPE_START_GAME:
-                        handleStartGame(message, userId);
+                        handleStartGame(&message, userId);
                         break;
                     case TYPE_QUESTION_REQUEST:
-                        handleQuestionRequest(message, userId);
+                        handleQuestionRequest(userId);
                         break;
                     case TYPE_QUESTION_ANSWERED:
-                        handleQuestionAnswered(message, userId);
+                        handleQuestionAnswered(&message, userId);
                         break;
                     default:
                         // Do nothing
@@ -159,14 +164,47 @@ static int isUserAuthorizedForMessageType(int messageType, int userId) {
            ? 1 : -1;
 }
 
+static void checkAndHandleAllPlayersFinished() {
+    if (finishedPlayerCount == getUserAmount()) {
+        currentGameState = GAME_STATE_FINISHED;
+
+        infoPrint("Game over!");
+        lockUserData();
+        for (int i = 0; i < getUserAmount(); i++) {
+            USER user = getUserByIndex(i);
+            MESSAGE gameOver = buildGameOver(
+                    (uint8_t) getAndCalculateRankByUserId(user.id),
+                    (uint32_t) user.score);
+            if (sendMessage(user.clientSocket, &gameOver) < 0) {
+                errorPrint("Unable to send game over to %s (%d)",
+                           user.username,
+                           user.id);
+            }
+        }
+        unlockUserData();
+
+        checkAndHandleGameEnd();
+    }
+}
+
+static void checkAndHandleGameEnd() {
+    if (currentGameState == GAME_STATE_FINISHED || currentGameState == GAME_STATE_ABORTED) {
+        // Cancel main thread so the server gets shut down
+        cancelMainThread();
+    }
+}
+
 static void handleConnectionTimeout(int userId) {
-    errorPrint("Player %d has left the game!", userId);
+    if (currentGameState != GAME_STATE_FINISHED) {
+        errorPrint("Player %d has left the game!", userId);
+    }
 
     if (isGameLeader(userId) >= 0 && currentGameState == GAME_STATE_PREPARATION) {
         MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, "Game leader has left the game.");
         broadcastMessageExcludeOneUser(&errorWarning, "Unable to send error warning to %s (%d)!", userId, 1);
 
         currentGameState = GAME_STATE_ABORTED;
+        checkAndHandleGameEnd();
     } else if (getUserAmount() - 1 < MINUSERS && currentGameState == GAME_STATE_GAME_RUNNING) {
         char *errorTextPlain = "Game cancelled because there are less than %d players left.";
         char *errorText = malloc(sizeof(errorTextPlain) + sizeof(MINUSERS));
@@ -176,6 +214,7 @@ static void handleConnectionTimeout(int userId) {
         broadcastMessageExcludeOneUser(&errorWarning, "Unable to send error warning to %s (%d)!", userId, 1);
 
         currentGameState = GAME_STATE_ABORTED;
+        checkAndHandleGameEnd();
     }
 
     // Just to be safe call the close of the socket (if it is not closed yet)
@@ -215,18 +254,18 @@ static void handleCatalogRequest(int userId) {
     }
 }
 
-static void handleCatalogChange(MESSAGE message) {
+static void handleCatalogChange(MESSAGE *message) {
     pthread_mutex_lock(&selectedCatalogNameMutex);
     // NOTE FEEDBACK We should use memcpy, but this crashes
     //memcpy(selectedCatalogName, message.body.catalogChange.fileName, strlen(message.body.catalogChange.fileName));
-    selectedCatalogName = message.body.catalogChange.fileName;
+    selectedCatalogName = message->body.catalogChange.fileName;
     pthread_mutex_unlock(&selectedCatalogNameMutex);
 
-    MESSAGE catalogChangeResponse = buildCatalogChange(message.body.catalogChange.fileName);
+    MESSAGE catalogChangeResponse = buildCatalogChange(message->body.catalogChange.fileName);
     broadcastMessage(&catalogChangeResponse, "Unable to send catalog change response to user %s (%d)!");
 }
 
-static void handleStartGame(MESSAGE message, int userId) {
+static void handleStartGame(MESSAGE *message, int userId) {
     lockUserData();
 
     if (getUserAmount() < MINUSERS) {
@@ -242,53 +281,74 @@ static void handleStartGame(MESSAGE message, int userId) {
     }
 
     disableLogin();
-    loadCatalog(message.body.startGame.catalog);
+    if (loadCatalog(message->body.startGame.catalog) < 0) {
+        currentGameState = GAME_STATE_ABORTED;
+        checkAndHandleGameEnd();
+        return;
+    }
     currentGameState = GAME_STATE_GAME_RUNNING;
 
-    MESSAGE startGameResponse = buildStartGame(message.body.startGame.catalog);
+    MESSAGE startGameResponse = buildStartGame(message->body.startGame.catalog);
     broadcastMessageWithoutLock(&startGameResponse, "Unable to send start game response to user %s (%d)!");
 
     unlockUserData();
     notifyScoreAgent();
 }
 
-static void handleQuestionRequest(MESSAGE message, int userId) {
-    // TODO Next assignment
-    errorPrint("QUESTION-REQUEST");
-}
-
-static void handleQuestionAnswered(MESSAGE message, int userId) {
-    // TODO Next assignment
-}
-
-static void broadcastMessage(MESSAGE *message, char *text) {
-    broadcastMessageExcludeOneUser(message, text, -1, 1);
-}
-
-static void broadcastMessageWithoutLock(MESSAGE *message, char *text) {
-    broadcastMessageExcludeOneUser(message, text, -1, 0);
-}
-
-static void broadcastMessageExcludeOneUser(MESSAGE *message, char *text, int excludedUserId, int doLockUserData) {
-    // We need to lock user data because it may change during iteration
-    if (doLockUserData) {
-        lockUserData();
+static void handleQuestionRequest(int userId) {
+    MESSAGE questionResponse;
+    if (currentQuestion[userId] < getLoadedQuestionCount()) {
+        Question question = getLoadedQuestions()[currentQuestion[userId]];
+        questionResponse = buildQuestion(question.question, question.answers, question.timeout);
+    } else {
+        questionResponse = buildQuestionEmpty();
+        finishedPlayerCount++;
+        checkAndHandleAllPlayersFinished(); // TODO should we do this also at disconnect? -> yes we should!
     }
 
-    // Send broadcast
-    for (int i = 0; i < getUserAmount(); i++) {
-        USER user = getUserByIndex(i);
-        if (user.id == excludedUserId) {
-            continue;
-        }
+    // Project description tells to start the timer before we send the question
+    startTimer(userId);
 
-        if (sendMessage(user.clientSocket, message) < 0) {
-            errorPrint(text, user.username, user.id);
-        }
+    if (sendMessage(getUser(userId).clientSocket, &questionResponse) < 0) {
+        errorPrint("Unable to send question to %s (%d)!",
+                   getUser(userId).username,
+                   getUser(userId).id);
+    }
+}
+
+static void handleQuestionAnswered(MESSAGE *message, int userId) {
+    if (currentQuestion[userId] >= getLoadedQuestionCount()) {
+        errorPrint("%s (%d) requested question out of bounds (#%d out of %d). !",
+                   getUser(userId).username,
+                   getUser(userId).id,
+                   currentQuestion[userId],
+                   getLoadedQuestionCount());
+        return;
     }
 
-    // Unlock after locking
-    if (doLockUserData) {
-        unlockUserData();
+    Question question = getLoadedQuestions()[currentQuestion[userId]];
+    long timeout = (long) question.timeout * 1000; // Convert to milliseconds
+    long durationMillis = getCurrentTimerDurationMillis(userId);
+    int inTime = durationMillis <= timeout;
+
+    debugPrint("-- Answer -- timeout:\t%li", timeout);
+    debugPrint("-- Answer -- duration:\t%li", durationMillis);
+    debugPrint("-- Answer -- inTime:\t%s", inTime ? "yes" : "no");
+
+    // Calculate points if answer is correct
+    if (message->body.questionAnswered.selected == question.correct && inTime) {
+        calcScoreForUserByID(timeout, durationMillis, userId);
+        notifyScoreAgent();
     }
+
+    // Send question result to client
+    MESSAGE questionResult = buildQuestionResult(question.correct, inTime);
+    if (sendMessage(getUser(userId).clientSocket, &questionResult) < 0) {
+        errorPrint("Unable to send question result to %s (%d)!",
+                   getUser(userId).username,
+                   getUser(userId).id);
+    }
+
+    // Go to next question
+    currentQuestion[userId]++;
 }

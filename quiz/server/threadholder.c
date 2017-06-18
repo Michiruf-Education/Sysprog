@@ -4,15 +4,17 @@
  *
  * Server
  *
- * threadholder.h: Implementierung zuer Verwaltung von Threads.
+ * threadholder.c: Implementierung zur Verwaltung von Threads.
  */
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
-#include <stdio.h>
 #include "threadholder.h"
 #include "../common/util.h"
 
+//------------------------------------------------------------------------------
+// Fields
+//------------------------------------------------------------------------------
 typedef struct list_item {
     pthread_t threadId;
     struct list_item *next;
@@ -20,18 +22,22 @@ typedef struct list_item {
 
 static LIST_ITEM *first = NULL;
 
-static pthread_t *mainThreadId = NULL;
+static pthread_t mainThreadId = 0;
 
+//------------------------------------------------------------------------------
+// Implementations
+//------------------------------------------------------------------------------
 void registerMainThread(pthread_t threadId) {
     // Ignore IDE warnings, because it works well!
-    mainThreadId = &threadId;
+    mainThreadId = threadId;
 }
 
 void cancelMainThread() {
     // NOTE This method may must be thread safe! Check it out!
-    if (mainThreadId != NULL) {
+    if (mainThreadId != 0) {
+        infoPrint("Cancelling main thread (id: %lu)", mainThreadId);
         // Kill does not mean the thread gets killed immediately, it just sends signals
-        pthread_kill(*mainThreadId, SIGTERM);
+        pthread_kill(mainThreadId, SIGTERM);
     }
 }
 

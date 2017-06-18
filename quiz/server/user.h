@@ -38,7 +38,7 @@ int getSocketID(int id);
 
 int getUserAmount();
 
-int getUserIdbyClientSocket(int clientSocket);
+int getUserIdByClientSocket(int clientSocket);
 
 void clearUserData();
 
@@ -64,5 +64,7 @@ void unlockUserData();
 
 //Calc score for the user given, question timeout, needed time to answer, and clientSocket
 void calcScoreForUserByID(long timeout, long neededtime, int id);
+
+int getAndCalculateRankByUserId(int userId);
 
 #endif

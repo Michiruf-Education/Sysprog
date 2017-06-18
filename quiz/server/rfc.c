@@ -13,20 +13,23 @@
  * dieses ist. Sie müssen also in Ihrem Empfangscode immer zuerst den Header
  * (dessen Größe bekannt ist) empfangen und auswerten.
  */
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include "rfc.h"
 #include "../common/util.h"
 
-#ifndef DIRECTION_RECEIVE
-#define DIRECTION_RECEIVE 1
-#endif
-#ifndef DIRECTION_SEND
-#define DIRECTION_SEND 2
-#endif
+//------------------------------------------------------------------------------
+// Type definition
+//------------------------------------------------------------------------------
+enum {
+    DIRECTION_RECEIVE = 1,
+    DIRECTION_SEND = 2
+};
 
+//------------------------------------------------------------------------------
+// Implementations
+//------------------------------------------------------------------------------
 static void fixRFCHeader(MESSAGE *message, int direction) {
     message->header.length = direction == DIRECTION_RECEIVE ?
                              ntohs(message->header.length) :
@@ -82,6 +85,11 @@ static void fixRFCBody(MESSAGE *message, int direction) {
         case TYPE_QUESTION_RESULT:
             break;
         case TYPE_GAME_OVER:
+            if (direction == DIRECTION_RECEIVE) {
+                message->body.gameOver.score = ntohl(message->body.gameOver.score);
+            } else {
+                message->body.gameOver.score = htonl(message->body.gameOver.score);
+            }
             break;
         case TYPE_ERROR_WARNING:
             if (direction == DIRECTION_RECEIVE) {
@@ -156,6 +164,10 @@ int validateMessage(MESSAGE *message) {
         case TYPE_QUESTION:
             break;
         case TYPE_QUESTION_ANSWERED:
+            // The first 4 bits of the number must be 0
+            if ((message->body.questionAnswered.selected & (uint8_t) 0xF0) != 0) {
+                return -1;
+            }
             break;
         case TYPE_QUESTION_RESULT:
             break;
@@ -198,7 +210,7 @@ ssize_t sendMessage(int socketId, MESSAGE *message) {
     }
 
     debugPrint("\\\\\\\\\\\\\\\\ FAILURE \\\\\\\\\\\\\\\\");
-    return -1; // TODO we could return the send size here?!
+    return -1;
 }
 
 MESSAGE buildLoginResponseOk(uint8_t rfcVersion, uint8_t maxPlayerCount, uint8_t clientId) {
@@ -228,8 +240,10 @@ MESSAGE buildCatalogChange(char catalogFileName[]) {
 }
 
 MESSAGE buildPlayerList(PLAYER players[], int playerCount) {
-    if (sizeof(PLAYER) != 37) {
-        errorPrint("Size of PLAYER struct is not 37 anymore!");
+    if (debugEnabled()) {
+        if (sizeof(PLAYER) != 37) {
+            errorPrint("Size of PLAYER struct is not 37 anymore!");
+        }
     }
 
     MESSAGE msg;
@@ -244,6 +258,44 @@ MESSAGE buildStartGame(/* nullable */ char catalogFileName[]) {
     msg.header.type = TYPE_START_GAME;
     msg.header.length = (uint16_t) strlen(catalogFileName);
     memcpy(msg.body.startGame.catalog, catalogFileName, strlen(catalogFileName));
+    return msg;
+}
+
+MESSAGE buildQuestion(char question[], char answers[][ANSWER_SIZE], uint8_t timeout) {
+    MESSAGE msg;
+    msg.header.type = TYPE_QUESTION;
+    msg.header.length = (uint16_t) 769;
+    memcpy(msg.body.question.question, question, sizeof(msg.body.question.question));
+    memcpy(msg.body.question.answers, answers, sizeof(msg.body.question.answers));
+    msg.body.question.timeout = timeout;
+    return msg;
+}
+
+MESSAGE buildQuestionEmpty() {
+    MESSAGE msg;
+    msg.header.type = TYPE_QUESTION;
+    msg.header.length = (uint16_t) 0;
+    return msg;
+}
+
+MESSAGE buildQuestionResult(uint8_t correct, int inTime) {
+    MESSAGE msg;
+    msg.header.type = TYPE_QUESTION_RESULT;
+    msg.header.length = (uint16_t) 1;
+    // If the answer is not in time, the first bit of the uint8_t must be 1
+    if (!inTime) {
+        correct |= (uint8_t) 0x80;
+    }
+    msg.body.questionResult.correct = correct;
+    return msg;
+}
+
+MESSAGE buildGameOver(uint8_t rank, uint32_t score) {
+    MESSAGE msg;
+    msg.header.type = TYPE_GAME_OVER;
+    msg.header.length = (uint16_t) 5;
+    msg.body.gameOver.rank = rank;
+    msg.body.gameOver.score = score;
     return msg;
 }
 

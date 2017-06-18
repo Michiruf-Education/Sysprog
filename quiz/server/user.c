@@ -59,7 +59,7 @@ void clearUserData() {
 }
 
 //Error: Client ID no available for user beim zweiten durchlauf
-int getUserIdbyClientSocket(int clientSocket) {
+int getUserIdByClientSocket(int clientSocket) {
     lockUserData();
     int clientId = -1;
 
@@ -318,8 +318,6 @@ void calcScoreForUserByID(long timeout, long neededtime, int id) {
     unlockUserData();
 
 }
-
-
 
 //DEBUG print UserData
 void printUSERDATA() {

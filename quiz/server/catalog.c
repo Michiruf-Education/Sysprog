@@ -13,20 +13,27 @@
 #include <unistd.h>
 #include <memory.h>
 #include <stdlib.h>
-#include <sys/shm.h>
 #include <sys/mman.h>
 #include <sys/fcntl.h>
-#include <stdio.h>
 #include "../common/server_loader_protocol.h"
 #include "../common/util.h"
 #include "catalog.h"
 
+//------------------------------------------------------------------------------
+// Fields
+//------------------------------------------------------------------------------
 static int pipeInFD[2];
 static int pipeOutFD[2];
 
 static int catalogCount = 0;
 static CATALOG catalogs[CATALOGS_MAX_COUNT];
 
+static int loadedQuestionCount = -1;
+static Question *loadedQuestions;
+
+//------------------------------------------------------------------------------
+// Implementations
+//------------------------------------------------------------------------------
 int getCatalogCount() {
     return catalogCount;
 }
@@ -114,27 +121,49 @@ int fetchBrowseCatalogs() {
 }
 
 int loadCatalog(char catalogFile[]) {
-    // Prepare load command
-    char *loadCmd = malloc(sizeof(LOAD_CMD_PREFIX) + strlen(catalogFile) * sizeof(char));
-    sprintf(loadCmd, "%s%s", LOAD_CMD_PREFIX, catalogFile);
+    // NOTE
+    // Workaround, because the loaded has a read or write buffer in "queue".
+    // Without this we cannot read or write correctly!!!
+    // By doing the we get the result the loader does not understand one command.
+    char *clear = "\n";
+    write(pipeInFD[1], clear, strlen(clear));
+
 
     // Send load cmd to load shared memory
-    infoPrint("Sending \"%s\" command to loader.", loadCmd);
-    if (write(pipeInFD[1], loadCmd, sizeof(loadCmd)) != sizeof(loadCmd)) {
+    size_t cmdLength = strlen(LOAD_CMD_PREFIX) + strlen(catalogFile) + strlen(SEND_CMD);
+    char cmd[cmdLength];
+    strcat(cmd, LOAD_CMD_PREFIX);
+    strcat(cmd, catalogFile);
+    infoPrint("Sending \"%s\" command to loader.", cmd);
+    strcat(cmd, SEND_CMD);
+    if (write(pipeInFD[1], cmd, strlen(cmd)) != strlen(cmd)) {
         errorPrint("Error sending load command to pipe.");
         return -1;
     }
-    if (write(pipeInFD[1], SEND_CMD, sizeof(SEND_CMD)) != sizeof(SEND_CMD)) {
-        errorPrint("Error sending send (%s) command to pipe.", SEND_CMD);
+
+    // Read response from loader
+    char *response = readLine(pipeOutFD[0]);
+    infoPrint("Loader response: %s", response);
+
+    char *successPre = "LOADED, SIZE = ";
+    if (strncmp(successPre, response, strlen(successPre)) != 0) {
+        errorPrint("Loader failure message: %s", response);
         return -2;
     }
 
+    char loadedCategoriesCountString[10];
+    memcpy(loadedCategoriesCountString, &response[strlen(successPre)], strlen(response) * sizeof(char));
+    loadedQuestionCount = atoi(loadedCategoriesCountString);
 
     // Open shared memory handle
-    int handle = shm_open(SHMEM_NAME, O_RDONLY , 0600);
+    int handle = shm_open(SHMEM_NAME, O_RDONLY, 0600);
     if (handle < 0) {
         errorPrint("Could not open shared memory (%s).", SHMEM_NAME);
+        return -3;
     }
+
+    // Load questions
+    loadedQuestions = mmap(NULL, loadedQuestionCount * sizeof(Question), PROT_READ, MAP_SHARED, handle, 0);
 
     // Delete the shared memory for future uses
     int deleteShMem = shm_unlink(SHMEM_NAME);
@@ -142,5 +171,13 @@ int loadCatalog(char catalogFile[]) {
         errorPrint("Could not delete shared memory.");
     }
 
-    return -1;
+    return 0;
+}
+
+int getLoadedQuestionCount() {
+    return loadedQuestionCount;
+}
+
+Question *getLoadedQuestions() {
+    return loadedQuestions;
 }
