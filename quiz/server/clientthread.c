@@ -58,6 +58,10 @@ static void handleQuestionRequest(int userId);
 
 static void handleQuestionAnswered(MESSAGE *message, int userId);
 
+static void handleQuestionTimeout(int userId);
+
+static void finalizeQuestionHandling(int userId, int inTime, Question *question);
+
 //------------------------------------------------------------------------------
 // Fields
 //------------------------------------------------------------------------------
@@ -189,6 +193,9 @@ static void checkAndHandleGameEnd() {
     if (currentGameState == GAME_STATE_FINISHED || currentGameState == GAME_STATE_ABORTED) {
         // Cancel main thread so the server gets shut down
         cancelMainThread();
+
+        // NOTE We could also use other methods to reset the server in the initial state instead of
+        // shutting down
     }
 }
 
@@ -298,9 +305,10 @@ static void handleStartGame(MESSAGE *message, int userId) {
 
 static void handleQuestionRequest(int userId) {
     MESSAGE questionResponse;
+    Question *question = NULL;
     if (currentQuestion[userId] < getLoadedQuestionCount()) {
-        Question question = getLoadedQuestions()[currentQuestion[userId]];
-        questionResponse = buildQuestion(question.question, question.answers, question.timeout);
+        question = &getLoadedQuestions()[currentQuestion[userId]];
+        questionResponse = buildQuestion(question->question, question->answers, question->timeout);
     } else {
         questionResponse = buildQuestionEmpty();
         finishedPlayerCount++;
@@ -308,7 +316,9 @@ static void handleQuestionRequest(int userId) {
     }
 
     // Project description tells to start the timer before we send the question
-    startTimer(userId);
+    if (question != NULL) {
+        startTimer(userId, question->timeout, handleQuestionTimeout);
+    }
 
     if (sendMessage(getUser(userId).clientSocket, &questionResponse) < 0) {
         errorPrint("Unable to send question to %s (%d)!",
@@ -329,7 +339,7 @@ static void handleQuestionAnswered(MESSAGE *message, int userId) {
 
     Question question = getLoadedQuestions()[currentQuestion[userId]];
     long timeout = (long) question.timeout * 1000; // Convert to milliseconds
-    long durationMillis = getCurrentTimerDurationMillis(userId);
+    long durationMillis = getDurationMillisLeft(userId);
     int inTime = durationMillis <= timeout;
 
     debugPrint("-- Answer -- timeout:\t%li", timeout);
@@ -342,8 +352,22 @@ static void handleQuestionAnswered(MESSAGE *message, int userId) {
         notifyScoreAgent();
     }
 
+    finalizeQuestionHandling(userId, inTime, &question);
+}
+
+static void handleQuestionTimeout(int userId) {
+    // Load the question (again)
+    Question question = getLoadedQuestions()[currentQuestion[userId]];
+
+    finalizeQuestionHandling(userId, 0, &question);
+}
+
+static void finalizeQuestionHandling(int userId, int inTime, Question *question) {
+    // Stop the timer
+    stopTimer(userId);
+
     // Send question result to client
-    MESSAGE questionResult = buildQuestionResult(question.correct, inTime);
+    MESSAGE questionResult = buildQuestionResult(question->correct, inTime);
     if (sendMessage(getUser(userId).clientSocket, &questionResult) < 0) {
         errorPrint("Unable to send question result to %s (%d)!",
                    getUser(userId).username,

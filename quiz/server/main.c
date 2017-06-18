@@ -120,27 +120,22 @@ int main(int argc, char **argv) {
 
     // Start the application
     int hasError = 0;
-    errorPrint("e1: %d", hasError);
     if (createCatalogChildProcess(config.catalogPath, config.loaderPath) < 0) {
         errorPrint("Cannot create catalog child process!");
         hasError = 1;
     }
-    errorPrint("e2: %d", hasError);
     if (!hasError && fetchBrowseCatalogs() < 0) {
         errorPrint("Cannot fetch catalogs!");
         hasError = 1;
     }
-    errorPrint("e3: %d", hasError);
     if (!hasError && startLoginThread(&config.port) < 0) {
         errorPrint("Cannot start login thread!");
         hasError = 1;
     }
-    errorPrint("e4: %d", hasError);
     if (!hasError && startScoreAgentThread() < 0) {
         errorPrint("Cannot start score agent thread!");
         hasError = 1;
     }
-    errorPrint("e5: %d", hasError);
 
     //Debug-Artur
     //initUserData();

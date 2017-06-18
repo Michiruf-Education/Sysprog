@@ -9,8 +9,10 @@
 #ifndef USERTIMER_H
 #define USERTIMER_H
 
-void startTimer(int userId);
+int startTimer(int userId, int durationSeconds, void (*timerCallback)(int));
 
-long getCurrentTimerDurationMillis(int userId);
+int stopTimer(int userId);
+
+long getDurationMillisLeft(int userId);
 
 #endif
