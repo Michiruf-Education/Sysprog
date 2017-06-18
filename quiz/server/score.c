@@ -58,14 +58,6 @@ int startScoreAgentThread() {
     return 0;
 }
 
-
-
-//TODO updateRanking
-void updateRanking() {
-    //update Playerliste erstellen, ggf. Rangliste neu berechnen
-
-}
-
 void startScoreAgent() {
     infoPrint("Starting ScoreAgent...");
 
@@ -73,12 +65,11 @@ void startScoreAgent() {
 
         //Waits until semaphor is incremented/unlocked and decrements (locks) it again
         sem_wait(&scoreAgentTrigger);
-        updateRanking();
-        //SendPlayerListMSG
 
         //Create PlayerList
         void lockUserData();
-        PLAYER_LIST player_list = getPlayerList();
+        PLAYER_LIST player_list = getPlayerListSortedByScore();// getPlayerList();
+
         MESSAGE sendmessage = buildPlayerList(player_list.players, getUserAmount());
         //fuer alle aktiven clients
         for (int i = 0; i < getUserAmount(); i++) {

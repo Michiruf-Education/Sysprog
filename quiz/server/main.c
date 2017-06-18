@@ -26,6 +26,7 @@
 #include "score.h"
 #include "threadholder.h"
 #include "catalog.h"
+#include "user.h"
 
 //------------------------------------------------------------------------------
 // Types
@@ -132,6 +133,21 @@ int main(int argc, char **argv) {
         errorPrint("Cannot start score agent thread!");
         hasError = 1;
     }
+
+
+    //Debug-Artur
+    //initUserData();
+    //addUser("user1", 1);
+    //addUser("user2", 2);
+    //addUser("user3", 3);
+
+    //calcScoreForUserByID(10, 9, 0);
+    //calcScoreForUserByID(10, 3, 1);
+    //calcScoreForUserByID(10, 6, 2);
+
+    //printPlayerList();
+
+    //printPlayerListSortedByScore();
 
     // Shutdown handling:
     // Until a terminating signal the server main-thread shell wait
