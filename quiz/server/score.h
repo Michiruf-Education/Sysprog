@@ -19,6 +19,6 @@ int initSemaphore();
 void updateRanking();
 
 //increments (unlocks) Semaphore
-int incrementScoreAgentSemaphore(); // TODO Rename notifyScoreAgent!
+int notifyScoreAgent();
 
 #endif

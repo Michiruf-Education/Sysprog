@@ -209,7 +209,7 @@ int addUser(char *username, int socketID) {
     userAmount++;
 
     unlockUserData();
-    incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
+    notifyScoreAgent(); //for ScoreAgent to be executed
 
     return 1;
 }
@@ -256,7 +256,7 @@ void removeUserOverSocketID(int socketID) {
     for (int i = 0; i < MAXUSERS; i++) {
         if (userdata[i].clientSocket == socketID) {
             clearUserRow(i);
-            incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
+            notifyScoreAgent(); //for ScoreAgent to be executed
         }
     }
 }
@@ -264,7 +264,7 @@ void removeUserOverSocketID(int socketID) {
 //loescht ein User anhand der ID
 void removeUserOverID(int id) {
     clearUserRow(id);
-    incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
+    notifyScoreAgent(); //for ScoreAgent to be executed
 }
 
 //0 => ja
