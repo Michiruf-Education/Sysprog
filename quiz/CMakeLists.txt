@@ -8,13 +8,13 @@
 ###     Target:     sysprog
 ###     Executable: server (manually chosen from dialog in bin
 ###                 directory)
-###     Args:       TODO
+###     Args:       Use normal args for program
 ###
 ### 2.  "client"
 ###     Target:     sysprog
 ###     Executable: loader (manually chosen from dialog in bin
 ###                 directory)
-###     Args:       TODO
+###     Args:       Use normal args for program
 ###
 ### You may need to build using make first (for the binaries to exist)
 ###
