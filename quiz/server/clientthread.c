@@ -109,14 +109,12 @@ void clientThread(int *userIdPtr) { // TODO FEEDBACK void pointers!
                 if (isMessageTypeAllowedInCurrentGameState(currentGameState, message.header.type) < 0) {
                     errorPrint("User %d not allowed to send RFC type %d in current game state: %d!", userId,
                                message.header.type, currentGameState);
-                    return;
-                    // TODO continue instead of return?
+                    continue;
                 }
 
                 if (isUserAuthorizedForMessageType(userId, message.header.type) < 0) {
                     errorPrint("User %d not allowed to send RFC type %d!", userId, message.header.type);
-                    return;
-                    // TODO continue instead of return?
+                    continue;
                 }
 
                 switch (message.header.type) {
@@ -224,6 +222,9 @@ static void handleConnectionTimeout(int userId) {
     infoPrint("Removing user data for user %d...", userId);
     removeUserOverID(userId);
 
+    // In case the game is finished we should now handle the case the game may be finished
+    checkAndHandleAllPlayersFinished();
+
     infoPrint("Exiting client thread for user %d...", userId);
     unregisterThread(pthread_self());
     pthread_exit(0);
@@ -303,7 +304,7 @@ static void handleQuestionRequest(int userId) {
     } else {
         questionResponse = buildQuestionEmpty();
         finishedPlayerCount++;
-        checkAndHandleAllPlayersFinished(); // TODO should we do this also at disconnect? -> yes we should!
+        checkAndHandleAllPlayersFinished();
     }
 
     // Project description tells to start the timer before we send the question
