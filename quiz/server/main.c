@@ -134,7 +134,6 @@ int main(int argc, char **argv) {
         hasError = 1;
     }
 
-
     //Debug-Artur
     //initUserData();
     //addUser("user1", 1);
