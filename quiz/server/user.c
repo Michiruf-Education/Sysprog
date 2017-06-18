@@ -99,14 +99,28 @@ int getUserAmount() {
 }
 
 //getPlayerList Sorted by Score
+//TODO shitty implementaion but works so far
 PLAYER_LIST getPlayerListSortedByScore() {
     PLAYER_LIST allActivePlayers = getPlayerList();
     PLAYER tmpforSwap;
+    int userAmount = getUserAmount();
 
     //Use Bubble Sort for Sorting PlayerList
-    if (getUserAmount() > 0) {
-        for (int i = 0; i < getUserAmount() - 1; i++) {
-            for (int j = 0; j < getUserAmount() - 1; j++) {
+    if (userAmount > 0) {
+        for (int i = 0; i < userAmount - 1; i++) {
+            for (int j = 0; j < userAmount - 1; j++) {
+
+                if (allActivePlayers.players[i].score < allActivePlayers.players[j + 1].score) {
+                    //Swap
+                    tmpforSwap = allActivePlayers.players[j];
+                    allActivePlayers.players[j] = allActivePlayers.players[j + 1];
+                    allActivePlayers.players[j + 1] = tmpforSwap;
+                }
+            }
+        }
+
+        for (int i = 0; i < userAmount - 1; i++) {
+            for (int j = 0; j < userAmount - 1; j++) {
 
                 if (allActivePlayers.players[i].score < allActivePlayers.players[j + 1].score) {
                     //Swap
@@ -118,18 +132,34 @@ PLAYER_LIST getPlayerListSortedByScore() {
         }
     }
 
+    //DEBUG TODO remove
+    PLAYER_LIST tmpPlayerLst = allActivePlayers;
+
+    infoPrint("\n\n");
+    infoPrint("/----------------PLAYER-LIST-sorted by Score---------------------\\\n");
+    for (
+            int i = 0;
+            i < getUserAmount();
+            i++) {
+        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t|\n", tmpPlayerLst.players[i].id,
+                  tmpPlayerLst.players[i].name,
+                  tmpPlayerLst.players[i].score);
+    }
+    infoPrint("\\---------------------------------------------------------------/ \n");
+
+
     return allActivePlayers;
 }
 
 //Returns Rank of user 1-4
 //TODO bei gleicher Punktzahl selben platz zurueck geben
-int getAndCalculateRankByUserId(int id){
-    int rank=-1;
+int getAndCalculateRankByUserId(int userId) {
+    int rank = -1;
     PLAYER_LIST sortedPlayerList = getPlayerListSortedByScore();
     if (getUserAmount() > 0) {
         for (int i = 0; i < getUserAmount(); i++) {
-            if(sortedPlayerList.players[i].id == id){
-                rank = i+1;
+            if (sortedPlayerList.players[i].id == userId) {
+                rank = i + 1;
                 break;
             }
         }
@@ -296,15 +326,15 @@ int isGameLeader(int userId) {
 
 //Calc score
 unsigned int scoreForTimeLeft(long timeout, long timeLeft) {
-    unsigned int score = (timeLeft * 1000UL)/timeout; /* auf 10er-Stellen runden */
-    score = ((score+5UL)/10UL)*10UL;
+    unsigned int score = (timeLeft * 1000UL) / timeout; /* auf 10er-Stellen runden */
+    score = ((score + 5UL) / 10UL) * 10UL;
     return score;
 }
 
 //Calc score and set for the user given, question timeout, needed time to answer, and clientSocket
 void calcScoreForUserByID(long timeout, long neededtime, int id) {
 
-    unsigned int scoreForCurrentQuestion = scoreForTimeLeft(timeout,(timeout-neededtime));
+    unsigned int scoreForCurrentQuestion = scoreForTimeLeft(timeout, (timeout - neededtime));
 
     lockUserData();
     for (int i = 0; i < MAXUSERS; i++) {
@@ -312,7 +342,6 @@ void calcScoreForUserByID(long timeout, long neededtime, int id) {
             userdata[i].score += scoreForCurrentQuestion;
         }
     }
-
     unlockUserData();
 
 }

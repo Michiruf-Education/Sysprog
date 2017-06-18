@@ -50,8 +50,6 @@ PLAYER_LIST getPlayerList();
 
 PLAYER_LIST getPlayerListSortedByScore();
 
-int getAndCalculateRankByUserId(int id);
-
 void lockUserData();
 
 void unlockUserData();
@@ -60,7 +58,6 @@ void unlockUserData();
 void calcScoreForUserByID(long timeout, long neededtime, int id);
 
 int getAndCalculateRankByUserId(int userId);
-
 
 //Debug
 void printUSERDATA();
