@@ -51,14 +51,15 @@ int createCatalogChildProcess(char *catalogPath, char *loaderPath) {
     pid_t pid = fork();
     if (pid < 0) {
         errorPrint("Fork-Error: Could not create catalog child-process");
+        return -2;
     } else if (pid == 0) { // Child-process
         if (dup2(pipeInFD[0], STDIN_FILENO) < 0) {
             errorPrint("Cannot redirect stdin onto pipe!");
-            return -2;
+            return -3;
         }
         if (dup2(pipeOutFD[1], STDOUT_FILENO) < 0) {
             errorPrint("Cannot redirect stdout onto pipe!");
-            return -3;
+            return -4;
         }
         close(pipeInFD[0]);
         close(pipeInFD[1]);
@@ -70,11 +71,11 @@ int createCatalogChildProcess(char *catalogPath, char *loaderPath) {
 
         if (handle < 0) {
             errorPrint("Error executing loader:");
-            errorPrint("\tPath:\t\t%s", loaderPath);
-            errorPrint("\tCatalog path:\t%s", catalogPath);
-            return -4;
+            errorPrint("\tExecutable path:\t%s", loaderPath);
+            errorPrint("\tCatalog directory:\t%s", catalogPath);
+            // We need to exit the child process immediately! (parent will still continue)
+            exit(1);
         }
-        exit(1);
     } else { // Parent-process
         close(pipeInFD[0]);
         close(pipeOutFD[1]);

@@ -21,12 +21,12 @@
 #include <sys/signal.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <dirent.h>
 #include "../common/util.h"
 #include "login.h"
 #include "score.h"
 #include "threadholder.h"
 #include "catalog.h"
-#include "user.h"
 
 //------------------------------------------------------------------------------
 // Types
@@ -44,7 +44,9 @@ typedef struct {
 //------------------------------------------------------------------------------
 static CONFIGURATION initConfiguration();
 
-static bool parseArguments(int argc, char **argv, CONFIGURATION *config);
+static int parseArguments(int argc, char **argv, CONFIGURATION *config);
+
+static int validateConfiguration(CONFIGURATION *config);
 
 static void printUsage();
 
@@ -92,15 +94,17 @@ int main(int argc, char **argv) {
 
     // Initialize and parse arguments for configuration
     CONFIGURATION config = initConfiguration();
-    if (!parseArguments(argc, argv, &config)) {
+    int parseArgumentsResult = parseArguments(argc, argv, &config);
+    int validateArgumentsResult = validateConfiguration(&config);
+    infoPrint("Configuration:");
+    infoPrint("    Catalog-path:\t%s", config.catalogPath);
+    infoPrint("    Loader-path:\t%s", config.loaderPath);
+    infoPrint("    Port:\t\t%d", config.port);
+    if (!parseArgumentsResult || validateArgumentsResult != 0) {
         printUsage();
         infoPrint("Exiting...");
         exit(1);
     }
-    debugPrint("Configuration:");
-    debugPrint("    Catalog-path:\t%s", config.catalogPath);
-    debugPrint("    Loader-path:\t%s", config.loaderPath);
-    debugPrint("    Port:\t\t%d", config.port);
 
     // Lock file handling
     int createLockFileResult = createLockFile();
@@ -115,24 +119,28 @@ int main(int argc, char **argv) {
     }
 
     // Start the application
-    // TODO FEEDBACK Handle errors of functions called below!
     int hasError = 0;
+    errorPrint("e1: %d", hasError);
     if (createCatalogChildProcess(config.catalogPath, config.loaderPath) < 0) {
         errorPrint("Cannot create catalog child process!");
         hasError = 1;
     }
+    errorPrint("e2: %d", hasError);
     if (!hasError && fetchBrowseCatalogs() < 0) {
         errorPrint("Cannot fetch catalogs!");
         hasError = 1;
     }
+    errorPrint("e3: %d", hasError);
     if (!hasError && startLoginThread(&config.port) < 0) {
         errorPrint("Cannot start login thread!");
         hasError = 1;
     }
+    errorPrint("e4: %d", hasError);
     if (!hasError && startScoreAgentThread() < 0) {
         errorPrint("Cannot start score agent thread!");
         hasError = 1;
     }
+    errorPrint("e5: %d", hasError);
 
     //Debug-Artur
     //initUserData();
@@ -178,32 +186,32 @@ int main(int argc, char **argv) {
 
 static CONFIGURATION initConfiguration() {
     CONFIGURATION config;
-    config.catalogPath = "./";
-    config.loaderPath = "./loader";
-    config.port = 8000;
+    config.catalogPath = "";
+    config.loaderPath = "";
+    config.port = 0;
     return config;
 }
 
-static bool parseArguments(int argc, char **argv, CONFIGURATION *config) {
-    int categorySet = false;
-    int loaderSet = false;
-    int portSet = false;
+static int parseArguments(int argc, char **argv, CONFIGURATION *config) {
+    int categorySet = 0;
+    int loaderSet = 0;
+    int portSet = 0;
 
     int param;
     while ((param = getopt(argc, argv, "c:l:p:dm")) != -1) {
         switch (param) {
             case 'c':
                 config->catalogPath = optarg;
-                categorySet = true;
+                categorySet = 1;
                 break;
             case 'l':
                 config->loaderPath = optarg;
-                loaderSet = true;
+                loaderSet = 1;
                 break;
             case 'p':
                 // NOTE FEEDBACK atoi() kann schief gehen. Benutz strtoul (siehe man, schmeißt Fehler)
                 config->port = atoi(optarg);
-                portSet = true;
+                portSet = 1;
                 break;
             case 'd':
                 debugEnable();
@@ -213,20 +221,58 @@ static bool parseArguments(int argc, char **argv, CONFIGURATION *config) {
                 break;
             default:
                 // Fail safe check (because only allowed arguments shell get checked)
-                return false;
+                return -1;
         }
     }
 
     return categorySet && loaderSet && portSet;
 }
 
+static int validateConfiguration(CONFIGURATION *config) {
+    // Validate catalog path
+    DIR *catalogHandle = opendir(config->catalogPath);
+    if (catalogHandle) {
+        closedir(catalogHandle);
+    } else if (errno == ENOENT) {
+        errorPrint("Catalog directory argument is not a directory!");
+        return -1;
+    } else {
+        errorPrint("Error opening catalog directory!");
+        return -2;
+    }
+
+    // Validate loader path
+    if (access(config->loaderPath, F_OK) != 0) {
+        errorPrint("Loader executable does not exist!");
+        return -3;
+    }
+    DIR *loaderHandleDir = opendir(config->loaderPath);
+    if (loaderHandleDir) {
+        closedir(loaderHandleDir);
+        errorPrint("Loader executable is not a file!");
+        return -4;
+    }
+    if (access(config->loaderPath, X_OK) != 0) {
+        errorPrint("Loader executable is not executable!");
+        return -5;
+    }
+
+    // Validate port
+    if (config->port <= 0) {
+        errorPrint("Port must be greater than zero!");
+        return -6;
+    }
+
+    return 0;
+}
+
 static void printUsage() {
     errorPrint("Usage:  %s -c CATALOG_PATH -l LOADER_PATH -p PORT [-d] [-m]", getProgName());
-    errorPrint("        -c        Specify catalog location. Required.");
-    errorPrint("        -l        Specify loader location. Required.");
+    errorPrint("        -c        Specify catalog direct. Required.");
+    errorPrint("        -l        Specify loader executable. Required.");
     errorPrint("        -p        Specify port. Required");
-    errorPrint("        -d        Enable debug output");
-    errorPrint("        -m        Disable colors in debug output");
+    errorPrint("        [-d]      Enable debug output");
+    errorPrint("        [-m]      Disable colors in debug output");
 }
 
 static int createLockFile() {
