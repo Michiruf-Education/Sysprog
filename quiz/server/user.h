@@ -28,13 +28,13 @@ int addUser(char *username, int socketID);
 
 void removeUserOverSocketID(int socketID);
 
-void removeUserOverID(int id);
+void removeUser(int userId);
 
-USER getUser(int id);
+USER getUser(int userId);
 
-USER getUserByIndex(int id);
+USER getUserByIndex(int index);
 
-int getSocketID(int id);
+int getSocketIdByUserId(int userId);
 
 int getUserAmount();
 
@@ -44,19 +44,13 @@ void clearUserData();
 
 int nameExist(char *username);
 
-int isGameLeader(int id);
+int isGameLeader(int userId);
 
 PLAYER_LIST getPlayerList();
 
 PLAYER_LIST getPlayerListSortedByScore();
 
 int getAndCalculateRankByUserId(int id);
-
-void printUSERDATA();
-
-void printPlayerList();
-
-void printPlayerListSortedByScore();
 
 void lockUserData();
 
@@ -66,5 +60,13 @@ void unlockUserData();
 void calcScoreForUserByID(long timeout, long neededtime, int id);
 
 int getAndCalculateRankByUserId(int userId);
+
+
+//Debug
+void printUSERDATA();
+
+void printPlayerList();
+
+void printPlayerListSortedByScore();
 
 #endif

@@ -122,9 +122,9 @@ PLAYER_LIST getPlayerListSortedByScore() {
 }
 
 //Returns Rank of user 1-4
+//TODO bei gleicher Punktzahl selben platz zurueck geben
 int getAndCalculateRankByUserId(int id){
     int rank=-1;
-    lockUserData();
     PLAYER_LIST sortedPlayerList = getPlayerListSortedByScore();
     if (getUserAmount() > 0) {
         for (int i = 0; i < getUserAmount(); i++) {
@@ -134,8 +134,6 @@ int getAndCalculateRankByUserId(int id){
             }
         }
     }
-    unlockUserData();
-
     return rank;
 }
 
@@ -232,8 +230,8 @@ int addUser(char *username, int socketID) {
     return 1;
 }
 
-USER getUser(int id) {
-    return userdata[id];
+USER getUser(int userId) {
+    return userdata[userId];
 }
 
 USER getUserByIndex(int index) {
@@ -252,8 +250,8 @@ USER getUserByIndex(int index) {
     return getUser(index);
 }
 
-int getSocketID(int id) {
-    return userdata[id].clientSocket;
+int getSocketIdByUserId(int userId) {
+    return userdata[userId].clientSocket;
 }
 
 //return 1 => true
@@ -280,15 +278,15 @@ void removeUserOverSocketID(int socketID) {
 }
 
 //loescht ein User anhand der ID
-void removeUserOverID(int id) {
-    clearUserRow(id);
+void removeUser(int userId) {
+    clearUserRow(userId);
     notifyScoreAgent(); //for ScoreAgent to be executed
 }
 
 //0 => ja
 //-1=> nein
-int isGameLeader(int id) {
-    if (id == 0) {
+int isGameLeader(int userId) {
+    if (userId == 0) {
         return 0;
     } else {
         return -1;

@@ -222,7 +222,7 @@ static void handleConnectionTimeout(int userId) {
     close(getUser(userId).clientSocket);
 
     infoPrint("Removing user data for user %d...", userId);
-    removeUserOverID(userId);
+    removeUser(userId);
 
     infoPrint("Exiting client thread for user %d...", userId);
     unregisterThread(pthread_self());
