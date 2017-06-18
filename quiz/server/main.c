@@ -27,6 +27,7 @@
 #include "score.h"
 #include "threadholder.h"
 #include "catalog.h"
+#include "clientthread.h"
 
 //------------------------------------------------------------------------------
 // Types
