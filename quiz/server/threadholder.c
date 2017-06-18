@@ -9,10 +9,12 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
-#include <stdio.h>
 #include "threadholder.h"
 #include "../common/util.h"
 
+//------------------------------------------------------------------------------
+// Fields
+//------------------------------------------------------------------------------
 typedef struct list_item {
     pthread_t threadId;
     struct list_item *next;
@@ -22,6 +24,9 @@ static LIST_ITEM *first = NULL;
 
 static pthread_t *mainThreadId = NULL;
 
+//------------------------------------------------------------------------------
+// Implementations
+//------------------------------------------------------------------------------
 void registerMainThread(pthread_t threadId) {
     // Ignore IDE warnings, because it works well!
     mainThreadId = &threadId;

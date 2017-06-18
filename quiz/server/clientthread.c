@@ -40,6 +40,8 @@ static int isMessageTypeAllowedInCurrentGameState(int gameState, int messageType
 
 static int isUserAuthorizedForMessageType(int messageType, int userId);
 
+static void checkAndHandleAllPlayersFinished();
+
 static void handleConnectionTimeout(int userId);
 
 static void handleCatalogRequest(int userId);
@@ -62,7 +64,9 @@ static pthread_t clientThreadId = 0;
 static char *selectedCatalogName = NULL;
 static pthread_mutex_t selectedCatalogNameMutex;
 
-static int currentQuestion = 0;
+static int currentQuestion[MAXUSERS] = {0};
+
+static int finishedPlayerCount = 0;
 
 //------------------------------------------------------------------------------
 // Implementations
@@ -154,6 +158,12 @@ static int isMessageTypeAllowedInCurrentGameState(int gameState, int messageType
 static int isUserAuthorizedForMessageType(int messageType, int userId) {
     return isGameLeader(userId) >= 0 || !(messageType == TYPE_CATALOG_CHANGE || messageType == TYPE_START_GAME)
            ? 1 : -1;
+}
+
+static void checkAndHandleAllPlayersFinished() {
+    if(finishedPlayerCount == getUserAmount()) {
+        // TODO Send game over message
+    }
 }
 
 static void handleConnectionTimeout(int userId) {
@@ -251,11 +261,13 @@ static void handleStartGame(MESSAGE *message, int userId) {
 
 static void handleQuestionRequest(int userId) {
     MESSAGE questionResponse;
-    if (currentQuestion < getLoadedQuestionCount()) {
-        Question question = getLoadedQuestions()[currentQuestion];
+    if (currentQuestion[userId] < getLoadedQuestionCount()) {
+        Question question = getLoadedQuestions()[currentQuestion[userId]];
         questionResponse = buildQuestion(question.question, question.answers, question.timeout);
     } else {
         questionResponse = buildQuestionEmpty();
+        finishedPlayerCount++;
+        checkAndHandleAllPlayersFinished();
     }
 
     if (sendMessage(getUser(userId).clientSocket, &questionResponse) < 0) {
@@ -264,7 +276,7 @@ static void handleQuestionRequest(int userId) {
                    getUser(userId).id);
     }
 
-    currentQuestion++;
+    currentQuestion[userId]++;
     // TODO Add timer, ...
 }
 
