@@ -279,14 +279,14 @@ int isGameLeader(int id) {
 }
 
 //Calc score
-unsigned long scoreForTimeLeft(unsigned long timeout,unsigned long timeLeft) {
+unsigned long scoreForTimeLeft(long timeout, long timeLeft) {
     unsigned long score = (timeLeft * 1000UL)/timeout; /* auf 10er-Stellen runden */
     score = ((score+5UL)/10UL)*10UL;
     return score;
 }
 
 //Calc score and set for the user given, question timeout, needed time to answer, and clientSocket
-void calcScoreForUserByID(unsigned long timeout, unsigned long neededtime, int id) {
+void calcScoreForUserByID(long timeout, long neededtime, int id) {
 
     int scoreForCurrentQuestion = scoreForTimeLeft(timeout,timeout-neededtime);
 
