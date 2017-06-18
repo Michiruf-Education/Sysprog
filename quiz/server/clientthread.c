@@ -227,7 +227,7 @@ static void handleConnectionTimeout(int userId) {
     close(getUser(userId).clientSocket);
 
     infoPrint("Removing user data for user %d...", userId);
-    removeUserOverID(userId);
+    removeUser(userId);
 
     // In case the game is finished we should now handle the case the game may be finished
     checkAndHandleAllPlayersFinished();

@@ -62,27 +62,24 @@ void startScoreAgent() {
     infoPrint("Starting ScoreAgent...");
 
     while (1) {
-
         //Waits until semaphor is incremented/unlocked and decrements (locks) it again
         sem_wait(&scoreAgentTrigger);
 
         //Create PlayerList
-        void lockUserData();
+        lockUserData();
         PLAYER_LIST player_list = getPlayerListSortedByScore();// getPlayerList();
 
         MESSAGE sendmessage = buildPlayerList(player_list.players, getUserAmount());
         //fuer alle aktiven clients
         for (int i = 0; i < getUserAmount(); i++) {
-            if (sendMessage(getSocketID(player_list.players[i].id), &sendmessage) >= 0) {
+            if (sendMessage(getSocketIdByUserId(player_list.players[i].id), &sendmessage) >= 0) {
                 debugPrint("Debug: ScoreAgent - PlayerList send");
             } else {
                 errorPrint("Error: ScoreAgent Send Message PlayerList");
             }
         }
-        void unlockUserData();
+        unlockUserData();
     }
-
-
 }
 
 
