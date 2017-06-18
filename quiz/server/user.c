@@ -279,8 +279,8 @@ int isGameLeader(int id) {
 }
 
 //Calc score
-unsigned long scoreForTimeLeft(long timeout, long timeLeft) {
-    unsigned long score = (timeLeft * 1000UL)/timeout; /* auf 10er-Stellen runden */
+unsigned int scoreForTimeLeft(long timeout, long timeLeft) {
+    unsigned int score = (timeLeft * 1000UL)/timeout; /* auf 10er-Stellen runden */
     score = ((score+5UL)/10UL)*10UL;
     return score;
 }
@@ -288,7 +288,7 @@ unsigned long scoreForTimeLeft(long timeout, long timeLeft) {
 //Calc score and set for the user given, question timeout, needed time to answer, and clientSocket
 void calcScoreForUserByID(long timeout, long neededtime, int id) {
 
-    int scoreForCurrentQuestion = scoreForTimeLeft(timeout,timeout-neededtime);
+    unsigned int scoreForCurrentQuestion = scoreForTimeLeft(timeout,(timeout-neededtime));
 
     lockUserData();
     for (int i = 0; i < MAXUSERS; i++) {
