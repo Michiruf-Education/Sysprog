@@ -85,6 +85,11 @@ static void fixRFCBody(MESSAGE *message, int direction) {
         case TYPE_QUESTION_RESULT:
             break;
         case TYPE_GAME_OVER:
+            if (direction == DIRECTION_RECEIVE) {
+                message->body.gameOver.score = ntohl(message->body.gameOver.score);
+            } else {
+                message->body.gameOver.score = htonl(message->body.gameOver.score);
+            }
             break;
         case TYPE_ERROR_WARNING:
             if (direction == DIRECTION_RECEIVE) {
