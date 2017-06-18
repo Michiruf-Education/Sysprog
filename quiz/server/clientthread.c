@@ -164,13 +164,15 @@ static int isUserAuthorizedForMessageType(int messageType, int userId) {
 
 static void checkAndHandleAllPlayersFinished() {
     if (finishedPlayerCount == getUserAmount()) {
+        currentGameState = GAME_STATE_FINISHED;
+
         infoPrint("Game over!");
         lockUserData();
         for (int i = 0; i < getUserAmount(); i++) {
             USER user = getUserByIndex(i);
-            uint8_t rank = (uint8_t) getAndCalculateRankByUserId(user.id);
-
-            MESSAGE gameOver = buildGameOver(rank, user.score);
+            MESSAGE gameOver = buildGameOver(
+                    (uint8_t) getAndCalculateRankByUserId(user.id),
+                    (uint32_t) user.score);
             if (sendMessage(user.clientSocket, &gameOver) < 0) {
                 errorPrint("Unable to send game over to %s (%d)",
                            user.username,
@@ -178,11 +180,16 @@ static void checkAndHandleAllPlayersFinished() {
             }
         }
         unlockUserData();
+
+        // Cancel main thread so the server gets shut down
+        cancelMainThread();
     }
 }
 
 static void handleConnectionTimeout(int userId) {
-    errorPrint("Player %d has left the game!", userId);
+    if (currentGameState != GAME_STATE_FINISHED) {
+        errorPrint("Player %d has left the game!", userId);
+    }
 
     if (isGameLeader(userId) >= 0 && currentGameState == GAME_STATE_PREPARATION) {
         MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, "Game leader has left the game.");
@@ -310,9 +317,9 @@ static void handleQuestionAnswered(MESSAGE *message, int userId) {
     long durationMillis = getCurrentTimerDurationMillis(userId);
     int inTime = durationMillis <= timeout;
 
-    debugPrint("Answer timeout:\t%li", timeout);
-    debugPrint("Answer duration:\t%li", durationMillis);
-    debugPrint("Answer inTime:\t%s", inTime ? "yes" : "no");
+    debugPrint("-- Answer -- timeout:\t%li", timeout);
+    debugPrint("-- Answer -- duration:\t%li", durationMillis);
+    debugPrint("-- Answer -- inTime:\t%s", inTime ? "yes" : "no");
 
     // Calculate points if answer is correct
     if (message->body.questionAnswered.selected == question.correct && inTime) {
