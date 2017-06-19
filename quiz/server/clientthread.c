@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "../common/util.h"
 #include "clientthread.h"
 #include "rfc.h"
@@ -114,6 +115,7 @@ void clientThread(int *userIdPtr) { // TODO FEEDBACK void pointers!
         errorPrint("BEFORE_RECEIVED_MESSAGE ==> CLIENT-SOCKET: %i USER-ID: %i", getUser(userId).clientSocket, userId);
         ssize_t messageSize = receiveMessage(getUser(userId).clientSocket, &message);
         errorPrint("AFTER_RECEIVED_MESSAGE ==> CLIENT-SOCKET: %i USER-ID: %i", getUser(userId).clientSocket, userId);
+        errorPrint("ErrNo: %i", errno);
         if (messageSize > 0 && currentGameState != GAME_STATE_ABORTED) {
             if (validateMessage(&message) >= 0) {
                 if (isMessageTypeAllowedInCurrentGameState(currentGameState, message.header.type) < 0) {
@@ -155,10 +157,7 @@ void clientThread(int *userIdPtr) { // TODO FEEDBACK void pointers!
             return; // Safe call to terminate loop
         } else {
             errorPrint("Error receiving message (message size: %zu)!", messageSize);
-            debugHexdump(&message, sizeof(MESSAGE), "Präfix");
         }
-        debugHexdump(&message, sizeof(MESSAGE), "Präfix");
-
     }
 }
 
