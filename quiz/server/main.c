@@ -65,17 +65,17 @@ static void removeLockFile();
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
     // NOTE Remove program args fake
-    argc = 8;
-    char *args[argc];
-    argv = args;
-    args[0] = "server";
-    args[1] = "-c";
-    args[2] = "/media/sf_quiz/catalogs/";
-    args[3] = "-l";
-    args[4] = "/media/sf_quiz/bin/loader";
-    args[5] = "-p";
-    args[6] = "54321";
-    args[7] = "-d";
+    //argc = 8;
+    //char *args[argc];
+    //argv = args;
+    //args[0] = "server";
+    //args[1] = "-c";
+    //args[2] = "/media/sf_quiz/catalogs/";
+    //args[3] = "-l";
+    //args[4] = "/media/sf_quiz/bin/loader";
+    //args[5] = "-p";
+    //args[6] = "54321";
+    //args[7] = "-d";
     // NOTE End remove fake args
 
 
@@ -144,20 +144,6 @@ int main(int argc, char **argv) {
         errorPrint("Cannot start score agent thread!");
         hasError = 1;
     }
-
-    //Debug-Artur
-    //initUserData();
-    //addUser("user1", 1);
-    //addUser("user2", 2);
-    //addUser("user3", 3);
-
-    //calcScoreForUserByID(10, 9, 0);
-    //calcScoreForUserByID(10, 3, 1);
-    //calcScoreForUserByID(10, 6, 2);
-
-    //printPlayerList();
-
-    //printPlayerListSortedByScore();
 
     // Shutdown handling:
     // Until a terminating signal the server main-thread shell wait

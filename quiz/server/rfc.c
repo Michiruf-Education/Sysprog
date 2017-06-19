@@ -107,7 +107,7 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
         fixRFCHeader(message, DIRECTION_RECEIVE);
         uint16_t bodyLength = message->header.length;
         debugPrint("====== GOT MESSAGE ======");
-        debugPrint("Socket:\t\t%d", socketId);
+        debugPrint("Socket:\t\t\t%d", socketId);
         debugPrint("Type:\t\t\t%d", message->header.type);
         debugPrint("Header size:\t\t%zu", headerSize);
         debugPrint("Header's body length:\t%lu", (unsigned long) bodyLength);
