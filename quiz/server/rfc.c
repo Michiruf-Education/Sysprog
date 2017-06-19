@@ -19,6 +19,7 @@
 #include <errno.h>
 #include "rfc.h"
 #include "../common/util.h"
+#include "user.h"
 
 //------------------------------------------------------------------------------
 // Type definition
@@ -109,6 +110,7 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
         fixRFCHeader(message, DIRECTION_RECEIVE);
         uint16_t bodyLength = message->header.length;
         debugPrint("====== GOT MESSAGE ======");
+        debugPrint("Socket:\t\t%d", socketId);
         debugPrint("Type:\t\t\t%d", message->header.type);
         debugPrint("Header size:\t\t%zu", headerSize);
         debugPrint("Header's body length:\t%lu", (unsigned long) bodyLength);
@@ -132,8 +134,6 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
             errorPrint("BODY-ERROR: %i", err2);
         }
     } else {
-        errorPrint("HEADER-ERROR: %i", err);
-        //TODO durch ein ECONNRESET 104  (Connection reset by peer) kommt manchmal eine fehlerhafte Nachricht an
     }
 
     debugPrint("\\\\\\\\\\\\\\\\ FAILURE \\\\\\\\\\\\\\\\");
@@ -199,6 +199,7 @@ ssize_t sendMessage(int socketId, MESSAGE *message) {
     size_t completeLength = sizeof(HEADER) + headerLength;
 
     debugPrint("==== SENDING MESSAGE ====");
+    debugPrint("Socket:\t\t%d", socketId);
     debugPrint("Type:\t\t\t%d", message->header.type);
     debugPrint("Header's body length:\t%lu", (unsigned long) headerLength);
     debugPrint("Complete length:\t%zu", completeLength);

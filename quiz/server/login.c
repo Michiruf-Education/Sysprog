@@ -28,6 +28,7 @@
 #include <errno.h>
 #include "clientthread.h"
 #include "threadholder.h"
+#include "score.h"
 
 //------------------------------------------------------------------------------
 // Method pre-declaration
@@ -163,6 +164,11 @@ static int startLoginListener(int *port) { // TODO FEEDBACK: Should return void*
             errorPrint("Error: Message send failure");
             continue;
         }
+
+        // Notify the score agent manually here, because the score agent sends messages to all players
+        // which results in an unexpected behaviour in the client because it needs the login response ok first!
+        // Note that lasted 6h to figure out!
+        notifyScoreAgent();
 
         printUSERDATA();
         startClientThread(clientID);

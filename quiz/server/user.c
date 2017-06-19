@@ -132,27 +132,11 @@ PLAYER_LIST getPlayerListSortedByScore() {
         }
     }
 
-    //DEBUG TODO remove
-    PLAYER_LIST tmpPlayerLst = allActivePlayers;
-
-    infoPrint("\n\n");
-    infoPrint("/----------------PLAYER-LIST-sorted by Score---------------------\\\n");
-    for (
-            int i = 0;
-            i < getUserAmount();
-            i++) {
-        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t|\n", tmpPlayerLst.players[i].id,
-                  tmpPlayerLst.players[i].name,
-                  tmpPlayerLst.players[i].score);
-    }
-    infoPrint("\\---------------------------------------------------------------/ \n");
-
-
     return allActivePlayers;
 }
 
 //Returns Rank of user 1-4
-//TODO bei gleicher Punktzahl selben platz zurueck geben
+//NOTE bei gleicher Punktzahl selben platz zurueck geben
 int getAndCalculateRankByUserId(int userId) {
     int rank = -1;
     PLAYER_LIST sortedPlayerList = getPlayerListSortedByScore();
@@ -255,7 +239,6 @@ int addUser(char *username, int socketID) {
     userAmount++;
 
     unlockUserData();
-    notifyScoreAgent(); //for ScoreAgent to be executed
 
     return 1;
 }
@@ -352,7 +335,7 @@ void printUSERDATA() {
     debugPrint("/---------------------------------------------------------------\\");
     for (int i = 0; i < MAXUSERS; i++) {
         debugPrint("| ID: %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|\n", userdata[i].id, userdata[i].username,
-                  userdata[i].score, userdata[i].clientSocket);
+                   userdata[i].score, userdata[i].clientSocket);
     }
     debugPrint("\\---------------------------------------------------------------/");
 }
@@ -364,8 +347,8 @@ void printPlayerList() {
     debugPrint("/------------------------PLAYER-LIST----------------------------\\");
     for (int i = 0; i < getUserAmount(); i++) {
         debugPrint("| ID: %d\t| Username: %s\t| score: %d\t|\n", tmpPlayerLst.players[i].id,
-                  tmpPlayerLst.players[i].name,
-                  tmpPlayerLst.players[i].score);
+                   tmpPlayerLst.players[i].name,
+                   tmpPlayerLst.players[i].score);
     }
     debugPrint("\\---------------------------------------------------------------/");
 }
@@ -377,8 +360,8 @@ void printPlayerListSortedByScore() {
     debugPrint("/----------------PLAYER-LIST-sorted by Score--------------------\\");
     for (int i = 0; i < getUserAmount(); i++) {
         debugPrint("| ID: %d\t| Username: %s\t| score: %d\t|\n", tmpPlayerLst.players[i].id,
-                  tmpPlayerLst.players[i].name,
-                  tmpPlayerLst.players[i].score);
+                   tmpPlayerLst.players[i].name,
+                   tmpPlayerLst.players[i].score);
     }
     debugPrint("\\---------------------------------------------------------------/");
 }

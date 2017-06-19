@@ -68,7 +68,7 @@ static void finalizeQuestionHandling(int userId, int inTime, Question *question)
 //------------------------------------------------------------------------------
 static int currentGameState;
 
-static pthread_t clientThreadId = 0;
+static pthread_t clientThreadId[MAXUSERS] = {0};
 
 static char *selectedCatalogName = NULL;
 static pthread_mutex_t selectedCatalogNameMutex;
@@ -93,9 +93,10 @@ int initializeClientThreadModule() {
 
 int startClientThread(int userId) {
     // Create thread
-    int err = pthread_create(&clientThreadId, NULL, (void *) &clientThread, &userId);
-    registerThread(clientThreadId);
-    if (err == 0) {
+    int err = pthread_create(&clientThreadId[userId], NULL, (void *) &clientThread, &userId);
+    registerThread(clientThreadId[userId]);
+    errorPrint("CLIENT-THREAD-ID: %p", clientThreadId);
+    if (clientThreadId[userId] == 0 || err == 0) {
         infoPrint("Client thread created successfully.");
     } else {
         errorPrint("Can't create client thread!");
@@ -105,11 +106,11 @@ int startClientThread(int userId) {
 
 void clientThread(int *userIdPtr) { // TODO FEEDBACK void pointers!
     int userId = *userIdPtr;
-
+errorPrint("BEFORE_GAME_LEADER ==> CLIENT-SOCKET: %i USER-ID: %i", getUser(userId).clientSocket, userId);
     if (isGameLeader(userId) >= 0) {
         currentGameState = GAME_STATE_PREPARATION;
     }
-
+errorPrint("BEFORE_RECEIVE_LOOP ==> CLIENT-SOCKET: %i USER-ID: %i", getUser(userId).clientSocket, userId);
     while (1) {
         MESSAGE message;
         errorPrint("BEFORE_RECEIVED_MESSAGE ==> CLIENT-SOCKET: %i USER-ID: %i", getUser(userId).clientSocket, userId);
