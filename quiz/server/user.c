@@ -151,7 +151,6 @@ int getAndCalculateRankByUserId(int userId) {
     return rank;
 }
 
-
 PLAYER_LIST getPlayerList() {
     PLAYER_LIST allActivePlayers;
 
