@@ -57,7 +57,7 @@ int startTimer(int userId, int durationSeconds, void (*timerCallback)(int)) {
     }
 
     // Start the timer
-    struct itimerspec countdown = {0}; // TODO Try to remove "= {0}"
+    struct itimerspec countdown;
     countdown.it_value.tv_sec = durationSeconds;
     if (timer_settime(timers[userId], 0, &countdown, NULL) < 0) {
         errorPrint("Unable to start timer with sigevent for user %d!", userId);
