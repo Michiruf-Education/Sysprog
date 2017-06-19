@@ -16,10 +16,8 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <arpa/inet.h>
-#include <errno.h>
 #include "rfc.h"
 #include "../common/util.h"
-#include "user.h"
 
 //------------------------------------------------------------------------------
 // Type definition
@@ -105,7 +103,6 @@ static void fixRFCBody(MESSAGE *message, int direction) {
 
 ssize_t receiveMessage(int socketId, MESSAGE *message) {
     ssize_t headerSize = recv(socketId, &message->header, sizeof(message->header), MSG_WAITALL);
-    int err = errno;
     if (headerSize == sizeof(message->header)) {
         fixRFCHeader(message, DIRECTION_RECEIVE);
         uint16_t bodyLength = message->header.length;
@@ -124,16 +121,12 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
             return 0;
         }
         ssize_t bodySize = recv(socketId, &message->body, bodyLength, MSG_WAITALL);
-        int err2 = errno;
         debugPrint("Read body length:\t%zu", bodySize);
         if (bodySize == bodyLength) {
             fixRFCBody(message, DIRECTION_RECEIVE);
             debugPrint("//////// SUCCESS ////////");
             return headerSize + bodySize;
-        } else {
-            errorPrint("BODY-ERROR: %i", err2);
         }
-    } else {
     }
 
     debugPrint("\\\\\\\\\\\\\\\\ FAILURE \\\\\\\\\\\\\\\\");
@@ -157,33 +150,52 @@ int validateMessage(MESSAGE *message) {
                 return -3;
             }
             break;
-        case TYPE_LOGIN_RESPONSE_OK: // TODO validate from here on
+        case TYPE_LOGIN_RESPONSE_OK:
+            // Message to send
             break;
         case TYPE_CATALOG_REQUEST:
+            // Empty message
             break;
         case TYPE_CATALOG_RESPONSE:
+            // Message to send
             break;
         case TYPE_CATALOG_CHANGE:
-            break;
-        case TYPE_PLAYER_LIST:
-            break;
-        case TYPE_START_GAME:
-            break;
-        case TYPE_QUESTION_REQUEST:
-            break;
-        case TYPE_QUESTION:
-            break;
-        case TYPE_QUESTION_ANSWERED:
-            // The first 4 bits of the number must be 0
-            if ((message->body.questionAnswered.selected & (uint8_t) 0xF0) != 0) {
+            if (message->header.length == 0 || message->header.length != strlen(message->body.catalogChange.fileName)) {
                 return -1;
             }
             break;
+        case TYPE_PLAYER_LIST:
+            // Message to send
+            break;
+        case TYPE_START_GAME:
+            // In the case we get this messages, the file name must be set!
+            if (message->header.length <= 0 || message->header.length != strlen(message->body.startGame.catalog)) {
+                return 1;
+            }
+            break;
+        case TYPE_QUESTION_REQUEST:
+            // Empty message
+            break;
+        case TYPE_QUESTION:
+            // Message to send
+            break;
+        case TYPE_QUESTION_ANSWERED:
+            if (message->header.length != 1) {
+                return -1;
+            }
+            // The first 4 bits of the number must be 0
+            if ((message->body.questionAnswered.selected & (uint8_t) 0xF0) != 0) {
+                return -2;
+            }
+            break;
         case TYPE_QUESTION_RESULT:
+            // Message to send
             break;
         case TYPE_GAME_OVER:
+            // Message to send
             break;
         case TYPE_ERROR_WARNING:
+            // Message to send
             break;
         default:
             errorPrint("RFC type is unknown");
