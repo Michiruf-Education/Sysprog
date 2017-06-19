@@ -132,27 +132,11 @@ PLAYER_LIST getPlayerListSortedByScore() {
         }
     }
 
-    //DEBUG TODO remove
-    PLAYER_LIST tmpPlayerLst = allActivePlayers;
-
-    infoPrint("\n\n");
-    infoPrint("/----------------PLAYER-LIST-sorted by Score---------------------\\");
-    for (
-            int i = 0;
-            i < getUserAmount();
-            i++) {
-        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t|\n", tmpPlayerLst.players[i].id,
-                  tmpPlayerLst.players[i].name,
-                  tmpPlayerLst.players[i].score);
-    }
-    infoPrint("\\---------------------------------------------------------------/");
-
-
     return allActivePlayers;
 }
 
 //Returns Rank of user 1-4
-//TODO bei gleicher Punktzahl selben platz zurueck geben
+//NOTE bei gleicher Punktzahl selben platz zurueck geben
 int getAndCalculateRankByUserId(int userId) {
     int rank = -1;
     PLAYER_LIST sortedPlayerList = getPlayerListSortedByScore();

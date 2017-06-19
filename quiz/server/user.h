@@ -13,8 +13,6 @@
 #include "vardefine.h"
 #include "rfc.h"
 
-//TODO parameter umbennen/anpassen
-
 typedef struct user {
     int id;
     char username[USERNAMELENGTH]; //sicherstellen das der Username mit \0 Terminiert wird
@@ -59,7 +57,7 @@ void calcScoreForUserByID(long timeout, long neededtime, int id);
 
 int getAndCalculateRankByUserId(int userId);
 
-//Debug
+//Debug functions
 void printUSERDATA();
 
 void printPlayerList();

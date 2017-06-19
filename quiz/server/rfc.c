@@ -137,8 +137,6 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
             errorPrint("BODY-ERROR: %i", err2);
         }
     } else {
-        errorPrint("HEADER-ERROR: %i", err);
-        //TODO durch ein ECONNRESET 104  (Connection reset by peer) kommt manchmal eine fehlerhafte Nachricht an
     }
 
     debugPrint("\\\\\\\\\\\\\\\\ FAILURE \\\\\\\\\\\\\\\\");
