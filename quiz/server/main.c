@@ -64,19 +64,19 @@ static void removeLockFile();
 // Implementations
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
-//    // TODO Remove program args fake
-//    char *args[8];
-//    args[0] = "server";
-//    args[1] = "-c";
-//    args[2] = "/media/sf_quiz/catalogs/";
-//    args[3] = "-l";
-//    args[4] = "/media/sf_quiz/bin/loader";
-//    args[5] = "-p";
-//    args[6] = argv[2];
-//    args[7] = "-d";
-//    argv = args;
-//    argc = 8;
-//    // TODO End remove fake args
+    // NOTE Remove program args fake
+    argc = 8;
+    char *args[argc];
+    argv = args;
+    args[0] = "server";
+    args[1] = "-c";
+    args[2] = "/media/sf_quiz/catalogs/";
+    args[3] = "-l";
+    args[4] = "/media/sf_quiz/bin/loader";
+    args[5] = "-p";
+    args[6] = "54321";
+    args[7] = "-d";
+    // NOTE End remove fake args
 
 
     setProgName(basename(argv[0]));

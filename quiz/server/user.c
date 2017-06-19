@@ -22,6 +22,7 @@
 #include "vardefine.h"
 #include "score.h"
 #include "rfc.h"
+#include "mutexhelper.h"
 
 //pthread_t
 pthread_mutex_t mutexUserData;
@@ -43,11 +44,11 @@ void clearUserRow(int id) {
 }
 
 void lockUserData() {
-    pthread_mutex_lock(&mutexUserData);
+    mutexLock(&mutexUserData);
 }
 
 void unlockUserData() {
-    pthread_mutex_unlock(&mutexUserData);
+    mutexUnlock(&mutexUserData);
 }
 
 //setzt user.id=-1
@@ -79,7 +80,7 @@ int getUserIdByClientSocket(int clientSocket) {
 }
 
 int initMutex() {
-    return pthread_mutex_init(&mutexUserData, NULL);
+    return mutexInit(&mutexUserData, NULL);
 }
 
 //init UserData

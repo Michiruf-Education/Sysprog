@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include "../common/util.h"
+#include "../common/question.h"
 #include "clientthread.h"
 #include "rfc.h"
 #include "user.h"
@@ -32,7 +33,7 @@
 #include "login.h"
 #include "rfchelper.h"
 #include "usertimer.h"
-#include "../common/question.h"
+#include "mutexhelper.h"
 
 //------------------------------------------------------------------------------
 // Method pre-declaration
@@ -82,7 +83,7 @@ static int finishedPlayerCount = 0;
 //------------------------------------------------------------------------------
 int initializeClientThreadModule() {
     // Initialize mutexes
-    int mutexResult = pthread_mutex_init(&selectedCatalogNameMutex, NULL);
+    int mutexResult = mutexInit(&selectedCatalogNameMutex, NULL);
     if (mutexResult < 0) {
         errorPrint("Could not init selected catalog name MUTEX!");
         return mutexResult;
@@ -258,7 +259,7 @@ static void handleCatalogRequest(int userId) {
         // We need to send a catalog change after the catalog request for new user to get the
         // selected catalog immediately and not have to wait for a catalog change
         // by the game leader
-        pthread_mutex_lock(&selectedCatalogNameMutex);
+        mutexLock(&selectedCatalogNameMutex);
         if (selectedCatalogName != NULL && strlen(selectedCatalogName) > 0) {
             MESSAGE catalogChange = buildCatalogChange(selectedCatalogName);
             if (sendMessage(getUser(userId).clientSocket, &catalogChange) < 0) {
@@ -267,16 +268,16 @@ static void handleCatalogRequest(int userId) {
                            getUser(userId).id);
             }
         }
-        pthread_mutex_unlock(&selectedCatalogNameMutex);
+        mutexUnlock(&selectedCatalogNameMutex);
     }
 }
 
 static void handleCatalogChange(MESSAGE *message) {
-    pthread_mutex_lock(&selectedCatalogNameMutex);
+    mutexLock(&selectedCatalogNameMutex);
     // NOTE FEEDBACK We should use memcpy, but this crashes
     //memcpy(selectedCatalogName, message.body.catalogChange.fileName, strlen(message.body.catalogChange.fileName));
     selectedCatalogName = message->body.catalogChange.fileName;
-    pthread_mutex_unlock(&selectedCatalogNameMutex);
+    mutexUnlock(&selectedCatalogNameMutex);
 
     MESSAGE catalogChangeResponse = buildCatalogChange(message->body.catalogChange.fileName);
     broadcastMessage(&catalogChangeResponse, "Unable to send catalog change response to user %s (%d)!");

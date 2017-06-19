@@ -146,14 +146,13 @@ int loadCatalog(char catalogFile[]) {
     char *response = readLine(pipeOutFD[0]);
     infoPrint("Loader response: %s", response);
 
-    char *successPre = "LOADED, SIZE = ";
-    if (strncmp(successPre, response, strlen(successPre)) != 0) {
+    if (strncmp(LOAD_SUCCESS_PREFIX, response, strlen(LOAD_SUCCESS_PREFIX)) != 0) {
         errorPrint("Loader failure message: %s", response);
         return -2;
     }
 
     char loadedCategoriesCountString[10];
-    memcpy(loadedCategoriesCountString, &response[strlen(successPre)], strlen(response) * sizeof(char));
+    memcpy(loadedCategoriesCountString, &response[strlen(LOAD_SUCCESS_PREFIX)], strlen(response) * sizeof(char));
     loadedQuestionCount = atoi(loadedCategoriesCountString);
 
     // Open shared memory handle

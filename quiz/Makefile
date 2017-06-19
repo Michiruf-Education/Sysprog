@@ -42,6 +42,7 @@ SERVER_MODULES=server/catalog.o \
 	       server/clientthread.o \
 	       server/login.o \
 	       server/main.o \
+	       server/mutexhelper.o \
 	       server/rfc.o \
 	       server/rfchelper.o \
 	       server/score.o \
