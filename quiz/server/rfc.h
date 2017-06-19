@@ -17,6 +17,7 @@
 #include "../common/question.h"
 
 #define RFC_VERSION 9
+#define RFC_MAX_MESSAGE_LENGTH 10000
 #define RFC_CATALOG_FILE_MAX_LENGTH 32 // TODO FEEDBACK Use limits.h
 #define RFC_PLAYER_NAME_LENGTH 32
 #define RFC_PLAYER_COUNT_MAXIMUM 4

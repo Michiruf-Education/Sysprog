@@ -110,6 +110,11 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
         debugPrint("Type:\t\t\t%d", message->header.type);
         debugPrint("Header size:\t\t%zu", headerSize);
         debugPrint("Header's body length:\t%lu", (unsigned long) bodyLength);
+        if (bodyLength > RFC_MAX_MESSAGE_LENGTH) {
+            debugPrint("TOO LONG MESSAGE");
+            debugPrint("\\\\\\\\\\ FAILURE-MESSAGE \\\\\\\\");
+            return 0;
+        }
         if (bodyLength == 0) {
             debugPrint("(Non-)read body length:\t%d", 0);
             debugPrint("//////// SUCCESS ////////");
