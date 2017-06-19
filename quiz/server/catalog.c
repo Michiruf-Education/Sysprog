@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/fcntl.h>
+#include <stdio.h>
 #include "../common/server_loader_protocol.h"
 #include "../common/util.h"
 #include "catalog.h"
@@ -133,10 +134,8 @@ int loadCatalog(char catalogFile[]) {
     // Send load cmd to load shared memory
     size_t cmdLength = strlen(LOAD_CMD_PREFIX) + strlen(catalogFile) + strlen(SEND_CMD);
     char cmd[cmdLength];
-    strcat(cmd, LOAD_CMD_PREFIX);
-    strcat(cmd, catalogFile);
-    infoPrint("Sending \"%s\" command to loader.", cmd);
-    strcat(cmd, SEND_CMD);
+    sprintf(cmd, "%s%s%s", LOAD_CMD_PREFIX, catalogFile, SEND_CMD);
+    infoPrint("Sending \"%s%s\" command to loader.", LOAD_CMD_PREFIX, catalogFile);
     if (write(pipeInFD[1], cmd, strlen(cmd)) != strlen(cmd)) {
         errorPrint("Error sending load command to pipe.");
         return -1;
