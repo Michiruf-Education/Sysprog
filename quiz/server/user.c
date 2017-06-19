@@ -348,39 +348,39 @@ void calcScoreForUserByID(long timeout, long neededtime, int id) {
 
 //DEBUG print UserData
 void printUSERDATA() {
-    infoPrint("\n\n");
-    infoPrint("/---------------------------------------------------------------\\\n");
+    debugPrint("\n\n");
+    debugPrint("/---------------------------------------------------------------\\");
     for (int i = 0; i < MAXUSERS; i++) {
-        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|\n", userdata[i].id, userdata[i].username,
+        debugPrint("| ID: %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|\n", userdata[i].id, userdata[i].username,
                   userdata[i].score, userdata[i].clientSocket);
     }
-    infoPrint("\\---------------------------------------------------------------/ \n");
+    debugPrint("\\---------------------------------------------------------------/");
 }
 
 void printPlayerList() {
     PLAYER_LIST tmpPlayerLst = getPlayerList();
 
-    infoPrint("\n\n");
-    infoPrint("/------------------------PLAYER-LIST------------------------------\\\n");
+    debugPrint("\n\n");
+    debugPrint("/------------------------PLAYER-LIST----------------------------\\");
     for (int i = 0; i < getUserAmount(); i++) {
-        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t|\n", tmpPlayerLst.players[i].id,
+        debugPrint("| ID: %d\t| Username: %s\t| score: %d\t|\n", tmpPlayerLst.players[i].id,
                   tmpPlayerLst.players[i].name,
                   tmpPlayerLst.players[i].score);
     }
-    infoPrint("\\---------------------------------------------------------------/ \n");
+    debugPrint("\\---------------------------------------------------------------/");
 }
 
 void printPlayerListSortedByScore() {
     PLAYER_LIST tmpPlayerLst = getPlayerListSortedByScore();
 
-    infoPrint("\n\n");
-    infoPrint("/----------------PLAYER-LIST-sorted by Score---------------------\\\n");
+    debugPrint("\n\n");
+    debugPrint("/----------------PLAYER-LIST-sorted by Score--------------------\\");
     for (int i = 0; i < getUserAmount(); i++) {
-        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t|\n", tmpPlayerLst.players[i].id,
+        debugPrint("| ID: %d\t| Username: %s\t| score: %d\t|\n", tmpPlayerLst.players[i].id,
                   tmpPlayerLst.players[i].name,
                   tmpPlayerLst.players[i].score);
     }
-    infoPrint("\\---------------------------------------------------------------/ \n");
+    debugPrint("\\---------------------------------------------------------------/");
 }
 
 

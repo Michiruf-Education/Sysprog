@@ -16,6 +16,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <errno.h>
 #include "rfc.h"
 #include "../common/util.h"
 
@@ -103,6 +104,7 @@ static void fixRFCBody(MESSAGE *message, int direction) {
 
 ssize_t receiveMessage(int socketId, MESSAGE *message) {
     ssize_t headerSize = recv(socketId, &message->header, sizeof(message->header), MSG_WAITALL);
+    int err = errno;
     if (headerSize == sizeof(message->header)) {
         fixRFCHeader(message, DIRECTION_RECEIVE);
         uint16_t bodyLength = message->header.length;
@@ -120,12 +122,18 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
             return 0;
         }
         ssize_t bodySize = recv(socketId, &message->body, bodyLength, MSG_WAITALL);
+        int err2 = errno;
         debugPrint("Read body length:\t%zu", bodySize);
         if (bodySize == bodyLength) {
             fixRFCBody(message, DIRECTION_RECEIVE);
             debugPrint("//////// SUCCESS ////////");
             return headerSize + bodySize;
+        } else {
+            errorPrint("BODY-ERROR: %i", err2);
         }
+    } else {
+        errorPrint("HEADER-ERROR: %i", err);
+        //TODO durch ein ECONNRESET 104  (Connection reset by peer) kommt manchmal eine fehlerhafte Nachricht an
     }
 
     debugPrint("\\\\\\\\\\\\\\\\ FAILURE \\\\\\\\\\\\\\\\");
