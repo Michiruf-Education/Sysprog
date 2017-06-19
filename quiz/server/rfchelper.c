@@ -4,7 +4,7 @@
  *
  * Server
  *
- * rfchelper.c: Implementierung für Broadcast-Messages.
+ * rfchelper.c: Implementierung für broadcast-messages.
  */
 #include "rfchelper.h"
 #include "user.h"

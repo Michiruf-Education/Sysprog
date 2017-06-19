@@ -4,7 +4,7 @@
  *
  * Server
  *
- * rfchelper.h: Header für Broadcast-Messages.
+ * rfchelper.h: Header für broadcast-messages.
  */
 #ifndef RFCHELPER_H
 #define RFCHELPER_H
