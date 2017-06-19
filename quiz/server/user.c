@@ -333,7 +333,7 @@ void calcScoreForUserByID(long timeout, long neededtime, int id) {
 void printUSERDATA() {
     debugPrint("/---------------------------------------------------------------\\");
     for (int i = 0; i < MAXUSERS; i++) {
-        debugPrint("| ID: %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|", userdata[i].id, userdata[i].username,
+        debugPrint("| ID:  %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|", userdata[i].id, userdata[i].username,
                    userdata[i].score, userdata[i].clientSocket);
     }
     debugPrint("\\---------------------------------------------------------------/");
@@ -344,7 +344,7 @@ void printPlayerList() {
 
     debugPrint("/------------------------PLAYER-LIST----------------------------\\");
     for (int i = 0; i < getUserAmount(); i++) {
-        debugPrint("| ID: %d\t| Username: %s\t| score: %d\t|", tmpPlayerLst.players[i].id,
+        debugPrint("| ID:  %d\t| Username: %s\t| score: %d\t|", tmpPlayerLst.players[i].id,
                    tmpPlayerLst.players[i].name,
                    tmpPlayerLst.players[i].score);
     }
@@ -356,7 +356,7 @@ void printPlayerListSortedByScore() {
 
     debugPrint("/----------------PLAYER-LIST-sorted by Score--------------------\\");
     for (int i = 0; i < getUserAmount(); i++) {
-        debugPrint("| ID: %d\t| Username: %s\t| score: %d\t|", tmpPlayerLst.players[i].id,
+        debugPrint("| ID:  %d\t| Username: %s\t| score: %d\t|", tmpPlayerLst.players[i].id,
                    tmpPlayerLst.players[i].name,
                    tmpPlayerLst.players[i].score);
     }

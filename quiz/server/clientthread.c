@@ -38,7 +38,7 @@
 //------------------------------------------------------------------------------
 // Method pre-declaration
 //------------------------------------------------------------------------------
-void clientThread(int *userIdPrt);
+void *clientThread(void *userIdPtr);
 
 static int isMessageTypeAllowedInCurrentGameState(int gameState, int messageType);
 
@@ -67,6 +67,9 @@ static void finalizeQuestionHandling(int userId, int inTime, Question *question)
 //------------------------------------------------------------------------------
 // Fields
 //------------------------------------------------------------------------------
+static pthread_mutex_t threadCreationMutex;
+static int threadCreationUserId;
+
 static int currentGameState;
 
 static pthread_t clientThreadId[MAXUSERS] = {0};
@@ -83,41 +86,65 @@ static int finishedPlayerCount = 0;
 //------------------------------------------------------------------------------
 int initializeClientThreadModule() {
     // Initialize mutexes
-    int mutexResult = mutexInit(&selectedCatalogNameMutex, NULL);
-    if (mutexResult < 0) {
+    int threadCreationMutexResult = mutexInit(&threadCreationMutex, NULL);
+    if (threadCreationMutexResult < 0) {
+        errorPrint("Could not init thread creation MUTEX!");
+        return threadCreationMutexResult;
+    }
+    int catalogMutexResult = mutexInit(&selectedCatalogNameMutex, NULL);
+    if (catalogMutexResult < 0) {
         errorPrint("Could not init selected catalog name MUTEX!");
-        return mutexResult;
+        return catalogMutexResult;
     }
 
     return 0;
 }
 
 int startClientThread(int userId) {
+    // NOTE Remove this print when the workaround below is fixed
+    errorPrint("START CLIENT-THREAD USER-ID: %i", userId);
+
+    // NOTE Workaround: If we start 2 clients at once, the function clientThread is sometimes called
+    // with the same user id (of the second client) and so nothing is working anymore.
+    // To fix this we use a mutex to create only one thread at once and get the user id before
+    // releasing the mutex
+    mutexLock(&threadCreationMutex);
+    threadCreationUserId = userId;
+
     // Create thread
-    int err = pthread_create(&clientThreadId[userId], NULL, (void *) &clientThread, &userId);
+    int err = pthread_create(&clientThreadId[userId], NULL, clientThread, &userId);
     registerThread(clientThreadId[userId]);
-    errorPrint("CLIENT-THREAD-ID: %p", clientThreadId);
     if (clientThreadId[userId] == 0 || err == 0) {
         infoPrint("Client thread created successfully.");
     } else {
         errorPrint("Can't create client thread!");
+        // NOTE See workaround above
+        mutexUnlock(&threadCreationMutex);
     }
     return err;
 }
 
-void clientThread(int *userIdPtr) { // TODO FEEDBACK void pointers!
-    int userId = *userIdPtr;
-errorPrint("BEFORE_GAME_LEADER ==> CLIENT-SOCKET: %i USER-ID: %i", getUser(userId).clientSocket, userId);
+void *clientThread(void *userIdPtr) {
+    int userId = *(int *) userIdPtr;
+    // NOTE Remove this print when the workaround below is fixed
+    errorPrint("STARTED CLIENT-THREAD USER-ID: %i", userId);
+
+    // NOTE See workaround in startClientThread()
+    if(userId != threadCreationUserId) {
+        errorPrint("===============================================================================");
+        errorPrint("==================================== ERROR ====================================");
+        errorPrint("===============================================================================");
+    }
+    userId = threadCreationUserId;
+    mutexUnlock(&threadCreationMutex);
+
     if (isGameLeader(userId) >= 0) {
         currentGameState = GAME_STATE_PREPARATION;
     }
-errorPrint("BEFORE_RECEIVE_LOOP ==> CLIENT-SOCKET: %i USER-ID: %i", getUser(userId).clientSocket, userId);
+
     while (1) {
         MESSAGE message;
-        errorPrint("BEFORE_RECEIVED_MESSAGE ==> CLIENT-SOCKET: %i USER-ID: %i", getUser(userId).clientSocket, userId);
         ssize_t messageSize = receiveMessage(getUser(userId).clientSocket, &message);
-        errorPrint("AFTER_RECEIVED_MESSAGE ==> CLIENT-SOCKET: %i USER-ID: %i", getUser(userId).clientSocket, userId);
-        errorPrint("AFTER_RECEIVED_MESSAGE ErrNo: %i", errno);
         if (messageSize > 0 && currentGameState != GAME_STATE_ABORTED) {
             if (validateMessage(&message) >= 0) {
                 if (isMessageTypeAllowedInCurrentGameState(currentGameState, message.header.type) < 0) {
@@ -156,7 +183,7 @@ errorPrint("BEFORE_RECEIVE_LOOP ==> CLIENT-SOCKET: %i USER-ID: %i", getUser(user
             }
         } else if (messageSize == 0 || currentGameState == GAME_STATE_ABORTED) {
             handleConnectionTimeout(userId);
-            return; // Safe call to terminate loop
+            return NULL; // Safe call to terminate loop
         } else {
             errorPrint("Error receiving message (message size: %zu)!", messageSize);
         }
