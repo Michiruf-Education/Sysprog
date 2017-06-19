@@ -13,7 +13,6 @@
  * Instanz des Servers läuft, erfolgt hier.
  */
 #include <stdlib.h>
-#include <stdbool.h>
 #include <getopt.h>
 #include <unistd.h>
 #include <libgen.h>
