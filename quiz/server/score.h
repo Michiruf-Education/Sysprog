@@ -6,16 +6,19 @@
  *
  * score.h: Header für den Score Agent
  */
-
 #ifndef SCORE_H
 #define SCORE_H
 
-int startAwaitScoreAgentThread();
+//Main - start function for the ScoreAgentThread
+int startScoreAgentThread();
 
-void startScoreAgent();
-
+//initialize Semaphore
 int initSemaphore();
 
-int incrementScoreAgentSemaphore();
+//update Ranking
+void updateRanking();
+
+//increments (unlocks) Semaphore
+int notifyScoreAgent();
 
 #endif

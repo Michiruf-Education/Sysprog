@@ -13,20 +13,23 @@
  * dieses ist. Sie müssen also in Ihrem Empfangscode immer zuerst den Header
  * (dessen Größe bekannt ist) empfangen und auswerten.
  */
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include "rfc.h"
 #include "../common/util.h"
 
-#ifndef DIRECTION_RECEIVE
-#define DIRECTION_RECEIVE 1
-#endif
-#ifndef DIRECTION_SEND
-#define DIRECTION_SEND 2
-#endif
+//------------------------------------------------------------------------------
+// Type definition
+//------------------------------------------------------------------------------
+enum {
+    DIRECTION_RECEIVE = 1,
+    DIRECTION_SEND = 2
+};
 
+//------------------------------------------------------------------------------
+// Implementations
+//------------------------------------------------------------------------------
 static void fixRFCHeader(MESSAGE *message, int direction) {
     message->header.length = direction == DIRECTION_RECEIVE ?
                              ntohs(message->header.length) :
@@ -35,7 +38,6 @@ static void fixRFCHeader(MESSAGE *message, int direction) {
 
 static void fixRFCBody(MESSAGE *message, int direction) {
     /**
-     * TODO comment
      * Wenn man ein Feld vom typ uint_16 benutzt, einmal die byte order per ntohs() umdrehen
      * Wenn man ein Feld vom typ uint_32+ benutzt, einmal die byte order per ntohl() umdrehen
      */
@@ -83,6 +85,11 @@ static void fixRFCBody(MESSAGE *message, int direction) {
         case TYPE_QUESTION_RESULT:
             break;
         case TYPE_GAME_OVER:
+            if (direction == DIRECTION_RECEIVE) {
+                message->body.gameOver.score = ntohl(message->body.gameOver.score);
+            } else {
+                message->body.gameOver.score = htonl(message->body.gameOver.score);
+            }
             break;
         case TYPE_ERROR_WARNING:
             if (direction == DIRECTION_RECEIVE) {
@@ -100,6 +107,7 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
         fixRFCHeader(message, DIRECTION_RECEIVE);
         uint16_t bodyLength = message->header.length;
         debugPrint("====== GOT MESSAGE ======");
+        debugPrint("Socket:\t\t\t%d", socketId);
         debugPrint("Type:\t\t\t%d", message->header.type);
         debugPrint("Header size:\t\t%zu", headerSize);
         debugPrint("Header's body length:\t%lu", (unsigned long) bodyLength);
@@ -107,9 +115,11 @@ ssize_t receiveMessage(int socketId, MESSAGE *message) {
             debugPrint("(Non-)read body length:\t%d", 0);
             debugPrint("//////// SUCCESS ////////");
             return headerSize;
+        } else if (bodyLength > sizeof(message->body)) {
+            debugPrint("TOO LONG MESSAGE");
+            debugPrint("\\\\\\\\\\ FAILURE-MESSAGE \\\\\\\\");
+            return 0;
         }
-        // TODO FEEDBACK Check length of message > maximum message length
-        //if(bodyLength > sizeof(message->body))
         ssize_t bodySize = recv(socketId, &message->body, bodyLength, MSG_WAITALL);
         debugPrint("Read body length:\t%zu", bodySize);
         if (bodySize == bodyLength) {
@@ -140,29 +150,52 @@ int validateMessage(MESSAGE *message) {
                 return -3;
             }
             break;
-        case TYPE_LOGIN_RESPONSE_OK: // TODO validate from here on
+        case TYPE_LOGIN_RESPONSE_OK:
+            // Message to send
             break;
         case TYPE_CATALOG_REQUEST:
+            // Empty message
             break;
         case TYPE_CATALOG_RESPONSE:
+            // Message to send
             break;
         case TYPE_CATALOG_CHANGE:
+            if (message->header.length == 0 || message->header.length != strlen(message->body.catalogChange.fileName)) {
+                return -1;
+            }
             break;
         case TYPE_PLAYER_LIST:
+            // Message to send
             break;
         case TYPE_START_GAME:
+            // In the case we get this messages, the file name must be set!
+            if (message->header.length <= 0 || message->header.length != strlen(message->body.startGame.catalog)) {
+                return 1;
+            }
             break;
         case TYPE_QUESTION_REQUEST:
+            // Empty message
             break;
         case TYPE_QUESTION:
+            // Message to send
             break;
         case TYPE_QUESTION_ANSWERED:
+            if (message->header.length != 1) {
+                return -1;
+            }
+            // The first 4 bits of the number must be 0
+            if ((message->body.questionAnswered.selected & (uint8_t) 0xF0) != 0) {
+                return -2;
+            }
             break;
         case TYPE_QUESTION_RESULT:
+            // Message to send
             break;
         case TYPE_GAME_OVER:
+            // Message to send
             break;
         case TYPE_ERROR_WARNING:
+            // Message to send
             break;
         default:
             errorPrint("RFC type is unknown");
@@ -178,6 +211,7 @@ ssize_t sendMessage(int socketId, MESSAGE *message) {
     size_t completeLength = sizeof(HEADER) + headerLength;
 
     debugPrint("==== SENDING MESSAGE ====");
+    debugPrint("Socket:\t\t%d", socketId);
     debugPrint("Type:\t\t\t%d", message->header.type);
     debugPrint("Header's body length:\t%lu", (unsigned long) headerLength);
     debugPrint("Complete length:\t%zu", completeLength);
@@ -199,7 +233,7 @@ ssize_t sendMessage(int socketId, MESSAGE *message) {
     }
 
     debugPrint("\\\\\\\\\\\\\\\\ FAILURE \\\\\\\\\\\\\\\\");
-    return -1; // TODO we could return the send size here?!
+    return -1;
 }
 
 MESSAGE buildLoginResponseOk(uint8_t rfcVersion, uint8_t maxPlayerCount, uint8_t clientId) {
@@ -229,8 +263,10 @@ MESSAGE buildCatalogChange(char catalogFileName[]) {
 }
 
 MESSAGE buildPlayerList(PLAYER players[], int playerCount) {
-    if (sizeof(PLAYER) != 37) {
-        errorPrint("Size of PLAYER struct is not 37 anymore!");
+    if (debugEnabled()) {
+        if (sizeof(PLAYER) != 37) {
+            errorPrint("Size of PLAYER struct is not 37 anymore!");
+        }
     }
 
     MESSAGE msg;
@@ -245,6 +281,44 @@ MESSAGE buildStartGame(/* nullable */ char catalogFileName[]) {
     msg.header.type = TYPE_START_GAME;
     msg.header.length = (uint16_t) strlen(catalogFileName);
     memcpy(msg.body.startGame.catalog, catalogFileName, strlen(catalogFileName));
+    return msg;
+}
+
+MESSAGE buildQuestion(char question[], char answers[][ANSWER_SIZE], uint8_t timeout) {
+    MESSAGE msg;
+    msg.header.type = TYPE_QUESTION;
+    msg.header.length = (uint16_t) 769;
+    memcpy(msg.body.question.question, question, sizeof(msg.body.question.question));
+    memcpy(msg.body.question.answers, answers, sizeof(msg.body.question.answers));
+    msg.body.question.timeout = timeout;
+    return msg;
+}
+
+MESSAGE buildQuestionEmpty() {
+    MESSAGE msg;
+    msg.header.type = TYPE_QUESTION;
+    msg.header.length = (uint16_t) 0;
+    return msg;
+}
+
+MESSAGE buildQuestionResult(uint8_t correct, int inTime) {
+    MESSAGE msg;
+    msg.header.type = TYPE_QUESTION_RESULT;
+    msg.header.length = (uint16_t) 1;
+    // If the answer is not in time, the first bit of the uint8_t must be 1
+    if (!inTime) {
+        correct |= (uint8_t) 0x80;
+    }
+    msg.body.questionResult.correct = correct;
+    return msg;
+}
+
+MESSAGE buildGameOver(uint8_t rank, uint32_t score) {
+    MESSAGE msg;
+    msg.header.type = TYPE_GAME_OVER;
+    msg.header.length = (uint16_t) 5;
+    msg.body.gameOver.rank = rank;
+    msg.body.gameOver.score = score;
     return msg;
 }
 

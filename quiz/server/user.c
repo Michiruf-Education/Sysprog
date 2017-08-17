@@ -13,7 +13,6 @@
  * Da diese Datenstruktur von mehreren Threads gleichzeitig verwendet wird,
  * ist auf die korrekte Synchronisierung zu achten!
  */
-// TODO FEEDBACK User-Modul unabhängig von RFC machen!
 #include <stdio.h>
 #include <string.h>
 #include "user.h"
@@ -23,27 +22,36 @@
 #include "vardefine.h"
 #include "score.h"
 #include "rfc.h"
+#include "mutexhelper.h"
 
 //pthread_t
 pthread_mutex_t mutexUserData;
 
-static USER userdata[4];
+static USER userdata[MAXUSERS];
 static unsigned int userAmount = 0; //Aktuelle anzahl angemeldeter User
 
 //reset/loescht inhalt der Zeile
 void clearUserRow(int id) {
-    pthread_mutex_lock(&mutexUserData);
+    lockUserData();
 
-    userdata[id].index = -1;
+    userdata[id].id = -1;
     userdata[id].username[0] = '\0';
     userdata[id].score = 0;
     userdata[id].clientSocket = -1;
     userAmount--;
 
-    pthread_mutex_unlock(&mutexUserData);
+    unlockUserData();
 }
 
-//setzt user.index=-1
+void lockUserData() {
+    mutexLock(&mutexUserData);
+}
+
+void unlockUserData() {
+    mutexUnlock(&mutexUserData);
+}
+
+//setzt user.id=-1
 void clearUserData() {
     for (int i = 0; i < MAXUSERS; i++) {
         clearUserRow(i);
@@ -52,28 +60,27 @@ void clearUserData() {
 }
 
 //Error: Client ID no available for user beim zweiten durchlauf
-int getClientIDforUser(int clientSocketID) {
-    int clientID = -1;
-    pthread_mutex_lock(&mutexUserData);
+int getUserIdByClientSocket(int clientSocket) {
+    lockUserData();
+    int clientId = -1;
+
     for (int i = 0; i < MAXUSERS; i++) {
-        if (userdata[i].clientSocket == clientSocketID) {
-            pthread_mutex_unlock(&mutexUserData);
-            clientID = i;
-            i = MAXUSERS;
-        } else {
-            errorPrint("Error: Client ID no available for user");
-            pthread_mutex_unlock(&mutexUserData);
-            clientID = -1;
+        if (userdata[i].clientSocket == clientSocket) {
+            clientId = i;
+            break;
         }
     }
 
-    // TODO FEEDBACK Remove duplicate unlock!
-    pthread_mutex_unlock(&mutexUserData);
-    return clientID;
+    if (clientId == -1) {
+        errorPrint("Error: Client ID not available for user");
+    }
+
+    unlockUserData();
+    return clientId;
 }
 
 int initMutex() {
-    return pthread_mutex_init(&mutexUserData, NULL);
+    return mutexInit(&mutexUserData, NULL);
 }
 
 //init UserData
@@ -92,9 +99,60 @@ int getUserAmount() {
     return userAmount;
 }
 
-//TODO test-debug code-reverse
+//getPlayerList Sorted by Score
+//TODO shitty implementaion but works so far
+PLAYER_LIST getPlayerListSortedByScore() {
+    PLAYER_LIST allActivePlayers = getPlayerList();
+    PLAYER tmpforSwap;
+    int userAmount = getUserAmount();
+
+    //Use Bubble Sort for Sorting PlayerList
+    if (userAmount > 0) {
+        for (int i = 0; i < userAmount - 1; i++) {
+            for (int j = 0; j < userAmount - 1; j++) {
+
+                if (allActivePlayers.players[i].score < allActivePlayers.players[j + 1].score) {
+                    //Swap
+                    tmpforSwap = allActivePlayers.players[j];
+                    allActivePlayers.players[j] = allActivePlayers.players[j + 1];
+                    allActivePlayers.players[j + 1] = tmpforSwap;
+                }
+            }
+        }
+
+        for (int i = 0; i < userAmount - 1; i++) {
+            for (int j = 0; j < userAmount - 1; j++) {
+
+                if (allActivePlayers.players[i].score < allActivePlayers.players[j + 1].score) {
+                    //Swap
+                    tmpforSwap = allActivePlayers.players[j];
+                    allActivePlayers.players[j] = allActivePlayers.players[j + 1];
+                    allActivePlayers.players[j + 1] = tmpforSwap;
+                }
+            }
+        }
+    }
+
+    return allActivePlayers;
+}
+
+//Returns Rank of user 1-4
+//NOTE bei gleicher Punktzahl selben platz zurueck geben
+int getAndCalculateRankByUserId(int userId) {
+    int rank = -1;
+    PLAYER_LIST sortedPlayerList = getPlayerListSortedByScore();
+    if (getUserAmount() > 0) {
+        for (int i = 0; i < getUserAmount(); i++) {
+            if (sortedPlayerList.players[i].id == userId) {
+                rank = i + 1;
+                break;
+            }
+        }
+    }
+    return rank;
+}
+
 PLAYER_LIST getPlayerList() {
-    pthread_mutex_lock(&mutexUserData);
     PLAYER_LIST allActivePlayers;
 
     if (getUserAmount() > 0) {
@@ -104,10 +162,10 @@ PLAYER_LIST getPlayerList() {
             for (int j = nextSlot; j < MAXUSERS; j++) {
                 PLAYER activePlayer;
 
-                if (userdata[j].index != -1) {
+                if (userdata[j].id != -1) {
                     memcpy(activePlayer.name, userdata[j].username, USERNAMELENGTH);
                     activePlayer.score = userdata[j].score;
-                    activePlayer.id = userdata[j].index;
+                    activePlayer.id = userdata[j].id;
 
                     allActivePlayers.players[i] = activePlayer;
                     nextSlot = j;
@@ -117,7 +175,6 @@ PLAYER_LIST getPlayerList() {
             }
         }
     }
-    pthread_mutex_unlock(&mutexUserData);
 
     return allActivePlayers;
 }
@@ -126,7 +183,7 @@ PLAYER_LIST getPlayerList() {
 //Bei fehler -1
 static int getFreeSlotID() {
     for (int i = 0; i < MAXUSERS; i++) {
-        if (userdata[i].index == -1) {
+        if (userdata[i].id == -1) {
             return i;
         }
     }
@@ -136,47 +193,14 @@ static int getFreeSlotID() {
 //Hinzufuegen eines Users
 //Bei Fehler => -1
 int addUser(char *username, int socketID) {
-    //putchar('\n');
+    lockUserData();
 
-    //Mutex Lock
-    pthread_mutex_lock(&mutexUserData);
+    if (strlen(username) > USERNAMELENGTH) {
+        errorPrint("Username to long!");
+        return -1;
+    }
 
-    if (nameExist(username) == 0) {
-
-        if (getUserAmount() < MAXUSERS) {
-
-            int freeSlot = getFreeSlotID();
-            if (freeSlot >= 0) {
-                userdata[freeSlot].index = freeSlot;
-                strcpy(userdata[freeSlot].username, username); //TODO prüfen !laeger als 32
-                userdata[freeSlot].clientSocket = socketID;
-                userdata[freeSlot].score = 0;
-
-                userAmount++;
-
-                pthread_mutex_unlock(&mutexUserData);
-                incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
-
-                return 1;
-
-            } else {
-                pthread_mutex_unlock(&mutexUserData);
-                errorPrint("Error: No free slot");
-                return -1;
-            }
-        } else {
-            errorPrint("Error: Maximum numbers of User reached, adding Username: %s not possible!", username);
-
-            MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL,
-                                                     "Maximum numbers of User reached, adding Username not possible!");
-            if (sendMessage(socketID, &errorWarning) < 0) {
-                errorPrint("Unable to send error warning to");
-            }
-            pthread_mutex_unlock(&mutexUserData);
-            return -1;
-        }
-
-    } else {
+    if (nameExist(username) != 0) {
         errorPrint("Error: User with Username: %s already exist!", username);
 
         MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL, "User with Username already exist!");
@@ -184,13 +208,43 @@ int addUser(char *username, int socketID) {
             errorPrint("Unable to send error warning to");
         }
 
-        pthread_mutex_unlock(&mutexUserData);
-        return -1;
+        unlockUserData();
+        return -2;
     }
+
+    if (getUserAmount() >= MAXUSERS) {
+        errorPrint("Error: Maximum numbers of User reached, adding Username: %s not possible!", username);
+
+        MESSAGE errorWarning = buildErrorWarning(ERROR_WARNING_TYPE_FATAL,
+                                                 "Maximum numbers of User reached, adding Username not possible!");
+        if (sendMessage(socketID, &errorWarning) < 0) {
+            errorPrint("Unable to send error warning to");
+        }
+
+        unlockUserData();
+        return -3;
+    }
+
+    int freeSlot = getFreeSlotID();
+    if (freeSlot < 0) {
+        errorPrint("Error: No free slot");
+        unlockUserData();
+        return -4;
+    }
+
+    userdata[freeSlot].id = freeSlot;
+    strcpy(userdata[freeSlot].username, username);
+    userdata[freeSlot].clientSocket = socketID;
+    userdata[freeSlot].score = 0;
+    userAmount++;
+
+    unlockUserData();
+
+    return 1;
 }
 
-USER getUser(int id) {
-    return userdata[id];
+USER getUser(int userId) {
+    return userdata[userId];
 }
 
 USER getUserByIndex(int index) {
@@ -198,8 +252,8 @@ USER getUserByIndex(int index) {
     // separate the index and the id in the future.
     // Doing so we could handle the disconnect of the leader (id: 0) to still get the first connected
     // user by index.
-    for (int i = 0; i < MAXUSERS; i++) { // TODO
-        if (getUser(i).index == -1) {
+    for (int i = 0; i < MAXUSERS; i++) {
+        if (getUser(i).id == -1) {
             index++;
         }
         if (i >= index) {
@@ -209,8 +263,8 @@ USER getUserByIndex(int index) {
     return getUser(index);
 }
 
-int getSocketID(int id) {
-    return userdata[id].clientSocket;
+int getSocketIdByUserId(int userId) {
+    return userdata[userId].clientSocket;
 }
 
 //return 1 => true
@@ -231,30 +285,21 @@ void removeUserOverSocketID(int socketID) {
     for (int i = 0; i < MAXUSERS; i++) {
         if (userdata[i].clientSocket == socketID) {
             clearUserRow(i);
-            incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
+            notifyScoreAgent(); //for ScoreAgent to be executed
         }
     }
 }
 
-//loescht ein User anhand des index/clientID
-void removeUserOverID(int id) {
-    clearUserRow(id);
-    incrementScoreAgentSemaphore(); //for ScoreAgent to be executed
-}
-
-
-//TODO updateRanking
-// TODO FEEDBACK Move into score
-void updateRanking() {
-    pthread_mutex_lock(&mutexUserData);
-    //update Playerliste erstellen, ggf. Rangliste neu berechnen
-    pthread_mutex_unlock(&mutexUserData);
+//loescht ein User anhand der ID
+void removeUser(int userId) {
+    clearUserRow(userId);
+    notifyScoreAgent(); //for ScoreAgent to be executed
 }
 
 //0 => ja
 //-1=> nein
-int isGameLeader(int id) {
-    if (id == 0) {
+int isGameLeader(int userId) {
+    if (userId == 0) {
         return 0;
     } else {
         return -1;
@@ -262,27 +307,60 @@ int isGameLeader(int id) {
 
 }
 
+//Calc score
+unsigned int scoreForTimeLeft(long timeout, long timeLeft) {
+    unsigned int score = (timeLeft * 1000UL) / timeout; /* auf 10er-Stellen runden */
+    score = ((score + 5UL) / 10UL) * 10UL;
+    return score;
+}
+
+//Calc score and set for the user given, question timeout, needed time to answer, and clientSocket
+void calcScoreForUserByID(long timeout, long neededtime, int id) {
+
+    unsigned int scoreForCurrentQuestion = scoreForTimeLeft(timeout, (timeout - neededtime));
+
+    lockUserData();
+    for (int i = 0; i < MAXUSERS; i++) {
+        if (userdata[i].id == id) {
+            userdata[i].score += scoreForCurrentQuestion;
+        }
+    }
+    unlockUserData();
+
+}
+
 //DEBUG print UserData
 void printUSERDATA() {
-    infoPrint("\n\n");
-    infoPrint("/---------------------------------------------------------------\\\n");
+    debugPrint("/---------------------------------------------------------------\\");
     for (int i = 0; i < MAXUSERS; i++) {
-        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|\n", userdata[i].index, userdata[i].username,
-                  userdata[i].score, userdata[i].clientSocket);
+        debugPrint("| ID:  %d\t| Username: %s\t| score: %d\t| SocketID:%d\t|", userdata[i].id, userdata[i].username,
+                   userdata[i].score, userdata[i].clientSocket);
     }
-    infoPrint("\\---------------------------------------------------------------/ \n");
+    debugPrint("\\---------------------------------------------------------------/");
 }
 
-void printPLAYERLIST() {
+void printPlayerList() {
     PLAYER_LIST tmpPlayerLst = getPlayerList();
 
-    infoPrint("\n\n");
-    infoPrint("/------------------------PLAYER-LIST------------------------------\\\n");
+    debugPrint("/------------------------PLAYER-LIST----------------------------\\");
     for (int i = 0; i < getUserAmount(); i++) {
-        infoPrint("| ID: %d\t| Username: %s\t| score: %d\t|\n", tmpPlayerLst.players[i].id,
-                  tmpPlayerLst.players[i].name,
-                  tmpPlayerLst.players[i].score);
+        debugPrint("| ID:  %d\t| Username: %s\t| score: %d\t|", tmpPlayerLst.players[i].id,
+                   tmpPlayerLst.players[i].name,
+                   tmpPlayerLst.players[i].score);
     }
-    infoPrint("\\---------------------------------------------------------------/ \n");
+    debugPrint("\\---------------------------------------------------------------/");
 }
+
+void printPlayerListSortedByScore() {
+    PLAYER_LIST tmpPlayerLst = getPlayerListSortedByScore();
+
+    debugPrint("/----------------PLAYER-LIST-sorted by Score--------------------\\");
+    for (int i = 0; i < getUserAmount(); i++) {
+        debugPrint("| ID:  %d\t| Username: %s\t| score: %d\t|", tmpPlayerLst.players[i].id,
+                   tmpPlayerLst.players[i].name,
+                   tmpPlayerLst.players[i].score);
+    }
+    debugPrint("\\---------------------------------------------------------------/");
+}
+
 

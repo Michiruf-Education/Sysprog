@@ -9,8 +9,9 @@
 #ifndef CATALOG_H
 #define CATALOG_H
 
-#define CMD_SEND "\n"
-#define CMD_BROWSE "BROWSE"
+#include "../common/question.h"
+
+#define SEND_CMD "\n"
 #define CATALOG_FILENAME_SIZE 32
 #define CATALOG_FILE_EXTENSION ".cat"
 #define CATALOGS_MAX_COUNT 16
@@ -23,11 +24,14 @@ int getCatalogCount();
 
 char *getCatalogNameByIndex(int index);
 
-void createCatalogChildProcess(char *catalogPath, char *loaderPath);
+int createCatalogChildProcess(char *catalogPath, char *loaderPath);
 
-void fetchBrowseCatalogs();
+int fetchBrowseCatalogs();
 
 int loadCatalog(char catalogFile[]);
 
+int getLoadedQuestionCount();
+
+Question* getLoadedQuestions();
 
 #endif

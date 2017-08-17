@@ -42,10 +42,13 @@ SERVER_MODULES=server/catalog.o \
 	       server/clientthread.o \
 	       server/login.o \
 	       server/main.o \
+	       server/mutexhelper.o \
 	       server/rfc.o \
+	       server/rfchelper.o \
 	       server/score.o \
 	       server/user.o \
 	       server/threadholder.o \
+	       server/usertimer.o \
            common/util.o
 
 LOADER_MODULES=loader/browse.o \

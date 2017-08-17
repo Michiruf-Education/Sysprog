@@ -13,6 +13,7 @@
 #ifndef RFC_H
 #define RFC_H
 
+#include <sys/types.h>
 #include "../common/question.h"
 
 #define RFC_VERSION 9
@@ -24,7 +25,6 @@
 //------------------------------------------------------------------------------
 // Type definition and parsing (for switching)
 //------------------------------------------------------------------------------
-
 enum {
     TYPE_LOGIN_REQUEST = 1,
     TYPE_LOGIN_RESPONSE_OK = 2,
@@ -46,11 +46,9 @@ enum {
     ERROR_WARNING_TYPE_FATAL = 1
 };
 
-
 //------------------------------------------------------------------------------
 // Request and response types
 //------------------------------------------------------------------------------
-
 #pragma pack(push, 1)
 typedef struct {
     uint8_t rfcVersion;
@@ -86,16 +84,27 @@ typedef struct {
 } START_GAME;
 
 typedef struct {
+    uint8_t selected;
+} QUESTION_ANSWERED;
+
+typedef struct {
+    uint8_t correct;
+} QUESTION_RESULT;
+
+typedef struct {
+    uint8_t rank;
+    uint32_t score;
+} GAME_OVER;
+
+typedef struct {
     uint8_t subtype;
     char message[RFC_ERROR_WARNING_MAX_LENGTH];
 } ERROR_WARNING;
 #pragma pack(pop)
 
-
 //------------------------------------------------------------------------------
 // Message structure
 //------------------------------------------------------------------------------
-
 #pragma pack(push, 1)
 typedef struct {
     uint8_t type;
@@ -105,16 +114,16 @@ typedef struct {
 typedef union {
     LOGIN_REQUEST loginRequest;
     LOGIN_RESPONSE_OK loginResponseOk;
-    //CATALOG_REQUEST catalogRequest; // empty
+    //CATALOG_REQUEST catalogRequest; // Is EMPTY -> useless
     CATALOG_RESPONSE catalogResponse;
     CATALOG_CHANGE catalogChange;
     PLAYER_LIST playerList;
     START_GAME startGame;
-    // TODO QUESTION_REQUEST questionRequest; --> use question.h
-    // TODO QUESTION question;
-    // TODO QUESTION_ANSWERED questionAnswered;
-    // TODO QUESTION_RESULT questionResult;
-    // TODO GAME_OVER gameOver;
+    //QUESTION_REQUEST questionRequest; // Is EMPTY -> useless
+    QuestionMessage question;
+    QUESTION_ANSWERED questionAnswered;
+    QUESTION_RESULT questionResult;
+    GAME_OVER gameOver;
     ERROR_WARNING errorWarning;
 } BODY;
 
@@ -124,11 +133,9 @@ typedef struct {
 } MESSAGE;
 #pragma pack(pop)
 
-
 //------------------------------------------------------------------------------
 // Methods for sending, receiving and building messages
 //------------------------------------------------------------------------------
-
 ssize_t receiveMessage(int socketId, MESSAGE *message);
 
 int validateMessage(MESSAGE *message);
@@ -145,14 +152,13 @@ MESSAGE buildPlayerList(PLAYER players[], int playerCount);
 
 MESSAGE buildStartGame(/* nullable */ char catalogFileName[]);
 
-/*
-TODO Do this for next assignment
-void buildQuestion(...);
+MESSAGE buildQuestion(char question[], char answers[][ANSWER_SIZE], uint8_t timeout);
 
-void buildQuestionResult(...);
+MESSAGE buildQuestionEmpty(); // For easy access (buildQuestion)
 
-void buildGameOver(...);
-*/
+MESSAGE buildQuestionResult(uint8_t correct, int inTime);
+
+MESSAGE buildGameOver(uint8_t rank, uint32_t score);
 
 MESSAGE buildErrorWarning(uint8_t subtype, char message[]);
 

@@ -16,6 +16,8 @@ enum {
     GAME_STATE_ABORTED = 4
 };
 
+int initializeClientThreadModule();
+
 int startClientThread(int userId);
 
 #endif
